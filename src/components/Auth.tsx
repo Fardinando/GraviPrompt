@@ -40,15 +40,15 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-space-900 transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background-light dark:bg-background-dark transition-colors font-display">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-8 rounded-xl shadow-2xl"
+        className="w-full max-w-md bg-white dark:bg-space-800 backdrop-blur-sm border border-slate-200 dark:border-white/10 p-8 rounded-xl shadow-2xl"
       >
         <div className="flex flex-col items-center gap-2 mb-8 text-center">
-          <div className="size-12 bg-brand/10 rounded-xl flex items-center justify-center text-brand mb-2">
-            <Rocket size={32} />
+          <div className="size-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-2">
+            <span className="material-symbols-outlined text-3xl">rocket_launch</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight dark:text-white">GraviPrompt</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -68,14 +68,14 @@ export default function Auth() {
               <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Nome Completo</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <Rocket size={18} />
+                  <span className="material-symbols-outlined text-[18px]">person</span>
                 </span>
                 <input
                   required
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-space-900/50 border border-slate-200 dark:border-white/10 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
                   placeholder="Como devemos te chamar?"
                 />
               </div>
@@ -85,13 +85,15 @@ export default function Auth() {
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">E-mail</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <span className="material-symbols-outlined text-[18px]">mail</span>
+              </span>
               <input
                 required
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                className="w-full bg-slate-50 dark:bg-space-900/50 border border-slate-200 dark:border-white/10 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
                 placeholder="seu@email.com"
               />
             </div>
@@ -100,28 +102,32 @@ export default function Auth() {
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Senha</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <span className="material-symbols-outlined text-[18px]">lock</span>
+              </span>
               <input
                 required
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-12 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                className="w-full bg-slate-50 dark:bg-space-900/50 border border-slate-200 dark:border-white/10 rounded-lg py-3 pl-11 pr-12 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <span className="material-symbols-outlined text-[18px]">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
               </button>
             </div>
           </div>
 
           <button
             disabled={loading}
-            className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Entrar' : 'Criar conta')}
           </button>
@@ -131,7 +137,7 @@ export default function Auth() {
           {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-brand font-bold hover:underline ml-1"
+            className="text-primary font-bold hover:underline ml-1"
           >
             {isLogin ? 'Criar conta' : 'Fazer login'}
           </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Copy, Check, Github, Loader2, ArrowRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { Category, OptimizedPrompt } from '../types';
@@ -19,36 +19,54 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
   const [category, setCategory] = useState<Category>('UI Design');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [currentOriginal, setCurrentOriginal] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [result, loading, currentOriginal]);
 
   useEffect(() => {
     if (activePrompt) {
       setResult(activePrompt.optimized_prompt);
-      setInput(activePrompt.original_prompt);
+      setCurrentOriginal(activePrompt.original_prompt);
+      setInput('');
       setCategory(activePrompt.category as Category);
     } else {
+      // This is the "New Optimization" state
       setResult(null);
+      setCurrentOriginal(null);
       setInput('');
+      setLoading(false);
     }
   }, [activePrompt]);
 
   const handleOptimize = async () => {
     if (!input.trim() || loading) return;
 
+    const originalText = input;
     setLoading(true);
+    setResult(null); // Clear previous result if any
+    setCurrentOriginal(originalText);
+    setInput('');
+    
     try {
-      const optimized = await optimizePrompt(input, category);
+      const optimized = await optimizePrompt(originalText, category);
       setResult(optimized);
 
-      // Save to Supabase
       const newPrompt = {
         user_id: user.id,
         category,
-        original_prompt: input,
+        original_prompt: originalText,
         optimized_prompt: optimized,
-        title: input.slice(0, 30) + (input.length > 30 ? '...' : ''),
-        github_links: [], // Could be extracted from AI response if needed
+        title: originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
+        github_links: [],
       };
 
       const { data, error } = await supabase
@@ -61,7 +79,11 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         onSave(data);
       }
     } catch (err) {
-      alert('Erro ao otimizar prompt. Verifique sua conexão e chave de API.');
+      console.error(err);
+      alert('Falha ao chamar a API Gemini. Verifique sua conexão.');
+      setResult(null);
+      setCurrentOriginal(null);
+      setInput(originalText);
     } finally {
       setLoading(false);
     }
@@ -76,69 +98,85 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
-        <AnimatePresence mode="wait">
-          {!result ? (
+    <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#f0f2f5] dark:bg-space-900 transition-colors">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 pb-80">
+        <AnimatePresence mode="popLayout">
+          {!currentOriginal && !loading ? (
             <motion.div 
               key="welcome"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-2xl w-full text-center space-y-6 mt-20"
+              className="max-w-2xl w-full mx-auto text-center space-y-6 mt-20"
             >
-              <div className="inline-flex items-center justify-center p-4 bg-brand/10 rounded-2xl mb-4 text-brand">
-                <Sparkles size={40} />
+              <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-2xl mb-4 text-primary">
+                <span className="material-symbols-outlined text-[40px]">auto_awesome</span>
               </div>
               <h2 className="text-4xl font-black dark:text-white tracking-tight">O que vamos otimizar hoje?</h2>
               <p className="text-slate-500 dark:text-slate-400 text-lg">
-                Insira seu prompt abaixo e deixe o GraviPrompt elevar o nível da sua criação.
+                Escolha uma categoria e insira seu prompt para começar a mágica.
               </p>
             </motion.div>
           ) : (
             <motion.div 
-              key="result"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-4xl w-full space-y-6 pb-40"
+              key="chat-bubbles"
+              className="flex flex-col gap-6"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold uppercase tracking-widest">
-                  <Sparkles size={12} />
-                  Prompt Otimizado
-                </div>
-                <button 
-                  onClick={copyToClipboard}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-space-800 hover:bg-slate-200 dark:hover:bg-space-700 rounded-lg text-sm font-medium transition-all dark:text-white"
+              {/* User Message Bubble */}
+              {currentOriginal && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-end w-full max-w-4xl mx-auto"
                 >
-                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                  {copied ? 'Copiado!' : 'Copiar'}
-                </button>
-              </div>
-
-              <div className="bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-xl p-6 md:p-8 shadow-xl prose dark:prose-invert max-w-none">
-                <ReactMarkdown>{result}</ReactMarkdown>
-              </div>
-
-              {activePrompt?.github_links && activePrompt.github_links.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500">Links Úteis</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {activePrompt.github_links.map((link, i) => (
-                      <a 
-                        key={i}
-                        href={link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-slate-800 transition-all"
-                      >
-                        <Github size={16} />
-                        Ver no GitHub
-                      </a>
-                    ))}
+                  <div className="bg-primary text-white p-4 rounded-2xl rounded-tr-none shadow-md max-w-[85%] relative">
+                    <p className="text-sm md:text-base whitespace-pre-wrap">{currentOriginal}</p>
+                    <div className="text-[10px] opacity-70 text-right mt-1">Você</div>
                   </div>
-                </div>
+                </motion.div>
               )}
+
+              {/* AI Message Bubble */}
+              {(loading || result) && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-start w-full max-w-4xl mx-auto"
+                >
+                  <div className="bg-white dark:bg-space-800 p-4 md:p-6 rounded-2xl rounded-tl-none shadow-md border border-slate-200 dark:border-white/10 max-w-[90%] relative">
+                    <div className="flex items-center gap-2 mb-3 text-primary">
+                      <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                      <span className="text-[10px] font-bold tracking-widest uppercase">GraviPrompt AI</span>
+                    </div>
+                    
+                    {loading ? (
+                      <div className="flex items-center gap-3 py-4">
+                        <Loader2 className="animate-spin text-primary" size={24} />
+                        <span className="text-sm text-slate-500 animate-pulse">Otimizando seu prompt e buscando Skills...</span>
+                      </div>
+                    ) : (
+                      <div className="prose dark:prose-invert max-w-none text-sm md:text-base dark:text-slate-200">
+                        <ReactMarkdown>{result || ''}</ReactMarkdown>
+                      </div>
+                    )}
+
+                    {!loading && result && (
+                      <div className="flex justify-end mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                        <button 
+                          onClick={copyToClipboard}
+                          className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-space-700 rounded-lg text-xs font-bold transition-all text-slate-500 dark:text-slate-400"
+                        >
+                          <span className={`material-symbols-outlined text-[16px] ${copied ? 'text-green-500' : ''}`}>
+                            {copied ? 'check' : 'content_copy'}
+                          </span>
+                          {copied ? 'COPIADO' : 'COPIAR RESULTADO'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -155,8 +193,8 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                 onClick={() => setCategory(cat)}
                 className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all ${
                   category === cat 
-                    ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' 
-                    : 'bg-slate-100 dark:bg-space-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-brand/50'
+                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                    : 'bg-slate-100 dark:bg-space-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-primary/50'
                 }`}
               >
                 {cat}
@@ -166,7 +204,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
 
           {/* Main Input Box */}
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-brand/20 to-blue-600/20 rounded-theme blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-blue-600/20 rounded-theme blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-theme shadow-2xl overflow-hidden">
               <textarea
                 ref={textareaRef}
@@ -186,9 +224,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                 <button 
                   onClick={handleOptimize}
                   disabled={loading || !input.trim()}
-                  className="p-2 bg-brand hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-theme transition-colors shadow-lg shadow-brand/20"
+                  className="p-2 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-theme transition-colors shadow-lg shadow-primary/20"
                 >
-                  {loading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRight size={20} />}
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="material-symbols-outlined">arrow_forward</span>}
                 </button>
               </div>
             </div>

@@ -4,7 +4,6 @@ import Sidebar from '../components/Sidebar';
 import Chat from '../components/Chat';
 import SettingsModal from '../components/SettingsModal';
 import { OptimizedPrompt, UserProfile } from '../types';
-import { Menu, X, Rocket } from 'lucide-react';
 
 interface DashboardProps {
   user: any;
@@ -22,8 +21,22 @@ export default function Dashboard({ user }: DashboardProps) {
     fetchData();
   }, [user.id]);
 
+  useEffect(() => {
+    if (profile) {
+      applyTheme(profile.theme);
+      localStorage.setItem('graviprompt-theme', profile.theme);
+    }
+  }, [profile]);
+
   const fetchData = async () => {
     setLoading(true);
+    
+    // Try local storage theme first
+    const localTheme = localStorage.getItem('graviprompt-theme');
+    if (localTheme) {
+      applyTheme(localTheme);
+    }
+
     try {
       // Fetch Profile
       const { data: profileData } = await supabase
@@ -34,7 +47,6 @@ export default function Dashboard({ user }: DashboardProps) {
       
       if (profileData) {
         setProfile(profileData);
-        applyTheme(profileData.theme);
       } else {
         // Create default profile
         const newProfile = { id: user.id, theme: 'system' };
@@ -60,15 +72,16 @@ export default function Dashboard({ user }: DashboardProps) {
   };
 
   const applyTheme = (theme: string) => {
+    const root = document.documentElement;
     if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
     }
   };
 
   const handleSavePrompt = (prompt: OptimizedPrompt) => {
-    setHistory([prompt, ...history]);
+    setHistory(prev => [prompt, ...prev]);
     setActivePrompt(prompt);
   };
 
@@ -88,15 +101,17 @@ export default function Dashboard({ user }: DashboardProps) {
     <div className="flex h-screen bg-white dark:bg-space-900 transition-colors overflow-hidden">
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-space-900 border-b border-slate-200 dark:border-white/10 z-40 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2 text-brand">
-          <Rocket size={24} />
+        <div className="flex items-center gap-2 text-primary">
+          <span className="material-symbols-outlined text-[24px]">rocket_launch</span>
           <span className="font-black tracking-tight">GraviPrompt</span>
         </div>
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 dark:text-white"
         >
-          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          <span className="material-symbols-outlined text-[24px]">
+            {sidebarOpen ? 'close' : 'menu'}
+          </span>
         </button>
       </div>
 
@@ -134,3 +149,4 @@ export default function Dashboard({ user }: DashboardProps) {
     </div>
   );
 }
+
