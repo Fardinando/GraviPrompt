@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -24,17 +24,15 @@ Estrutura esperada para o prompt otimizado:
 3. Restrições/Diretrizes: O que evitar ou seguir rigorosamente.
 4. Formato de Saída: Como o resultado deve ser apresentado.
 
+Além do prompt otimizado, você deve criar um título curto e criativo (máximo 30 caracteres) para esta conversa.
+
 Categoria atual: ${category}.
 
 Se a categoria for 'Web Sites' ou 'UI Design', inclua sugestões de acessibilidade e design responsivo.
 Se for 'Game Dev', foque em lógica, mecânicas e narrativa.
 Se for 'Data Science', foque em precisão estatística e eficiência algorítmica.
 
-Retorne a resposta estritamente em formato JSON com a seguinte estrutura:
-{
-  "title": "Um nome curto e criativo para esta conversa (máximo 30 caracteres)",
-  "prompt": "O prompt otimizado final em formato Markdown"
-}`;
+Retorne o resultado no formato JSON com as chaves "optimizedPrompt" e "title".`;
 
   try {
     const response = await ai.models.generateContent({
@@ -44,19 +42,29 @@ Retorne a resposta estritamente em formato JSON com a seguinte estrutura:
         systemInstruction,
         temperature: 0.7,
         responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            optimizedPrompt: {
+              type: Type.STRING,
+              description: "O prompt otimizado final em formato Markdown.",
+            },
+            title: {
+              type: Type.STRING,
+              description: "Um título curto e criativo para a conversa.",
+            },
+          },
+          required: ["optimizedPrompt", "title"],
+        },
         tools: [{ googleSearch: {} }] as any,
       },
     });
 
-    const text = response.text || "";
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      return {
-        title: originalPrompt.slice(0, 30),
-        prompt: text
-      };
-    }
+    const text = response.text;
+    if (!text) throw new Error("Resposta vazia da IA.");
+    
+    const result = JSON.parse(text);
+    return result as { optimizedPrompt: string; title: string };
   } catch (error) {
     console.error("Erro ao otimizar prompt:", error);
     throw error;

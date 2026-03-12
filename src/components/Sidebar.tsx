@@ -1,6 +1,6 @@
 import React from 'react';
 import { OptimizedPrompt } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   history: OptimizedPrompt[];
@@ -45,7 +45,7 @@ export default function Sidebar({
           </div>
           
           <AnimatePresence>
-            {history.map((item) => (
+            {Array.isArray(history) && history.map((item) => item && (
               <motion.button
                 key={item.id}
                 initial={{ opacity: 0, x: -10 }}

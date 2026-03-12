@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Category, OptimizedPrompt } from '../types';
 import { optimizePrompt } from '../services/geminiService';
@@ -57,15 +57,15 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
     setInput('');
     
     try {
-      const optimized = await optimizePrompt(originalText, category);
-      setResult(optimized);
+      const { optimizedPrompt, title } = await optimizePrompt(originalText, category);
+      setResult(optimizedPrompt);
 
       const newPrompt = {
         user_id: user.id,
         category,
         original_prompt: originalText,
-        optimized_prompt: optimized,
-        title: originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
+        optimized_prompt: optimizedPrompt,
+        title: title,
         github_links: [],
       };
 
@@ -75,7 +75,23 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        console.error('Erro ao salvar no Supabase:', error);
+        // Se falhar por causa da coluna 'title', tenta salvar sem ela como fallback
+        if (error.message.includes('column "title" of relation "prompts" does not exist')) {
+          const fallbackPrompt = { ...newPrompt };
+          delete (fallbackPrompt as any).title;
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('prompts')
+            .insert(fallbackPrompt)
+            .select()
+            .single();
+          
+          if (!fallbackError && fallbackData) {
+            onSave(fallbackData);
+          }
+        }
+      } else if (data) {
         onSave(data);
       }
     } catch (err) {
