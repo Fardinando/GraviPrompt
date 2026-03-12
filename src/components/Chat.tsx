@@ -57,10 +57,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
     setInput('');
     
     try {
-      const data = await optimizePrompt(originalText, category);
-      const optimized = data.prompt;
-      const title = data.title;
-      
+      const optimized = await optimizePrompt(originalText, category);
       setResult(optimized);
 
       const newPrompt = {
@@ -68,18 +65,18 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         category,
         original_prompt: originalText,
         optimized_prompt: optimized,
-        title: title || originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
+        title: originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
         github_links: [],
       };
 
-      const { data: savedData, error } = await supabase
+      const { data, error } = await supabase
         .from('prompts')
         .insert(newPrompt)
         .select()
         .single();
 
-      if (!error && savedData) {
-        onSave(savedData);
+      if (!error && data) {
+        onSave(data);
       }
     } catch (err) {
       console.error(err);
@@ -101,8 +98,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#f0f2f5] dark:bg-space-900 transition-colors">
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 pb-96">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#f0f2f5] dark:bg-space-900 transition-colors">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6">
         <AnimatePresence mode="popLayout">
           {!currentOriginal && !loading ? (
             <motion.div 
@@ -123,7 +121,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
           ) : (
             <motion.div 
               key="chat-bubbles"
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-6 pb-10"
             >
               {/* User Message Bubble */}
               {currentOriginal && (
@@ -186,7 +184,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 md:p-8 bg-gradient-to-t from-white via-white dark:from-space-900 dark:via-space-900 to-transparent absolute bottom-0 left-0 right-0">
+      <div className="p-4 md:p-6 bg-white dark:bg-space-900 border-t border-slate-200 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-none">
         <div className="max-w-3xl mx-auto space-y-4">
           {/* Category Chips */}
           <div className="flex flex-wrap gap-2 justify-center">
