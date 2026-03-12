@@ -30,20 +30,33 @@ Se a categoria for 'Web Sites' ou 'UI Design', inclua sugestões de acessibilida
 Se for 'Game Dev', foque em lógica, mecânicas e narrativa.
 Se for 'Data Science', foque em precisão estatística e eficiência algorítmica.
 
-Retorne o prompt otimizado final em formato Markdown.`;
+Retorne a resposta estritamente em formato JSON com a seguinte estrutura:
+{
+  "title": "Um nome curto e criativo para esta conversa (máximo 30 caracteres)",
+  "prompt": "O prompt otimizado final em formato Markdown"
+}`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", // Use 3.0 Flash for tool support
+      model: "gemini-3-flash-preview",
       contents: [{ parts: [{ text: originalPrompt }] }],
       config: {
         systemInstruction,
         temperature: 0.7,
-        tools: [{ googleSearch: {} }] as any, // Enable Google Search for finding skills
+        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }] as any,
       },
     });
 
-    return response.text || "Não foi possível otimizar o prompt.";
+    const text = response.text || "";
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return {
+        title: originalPrompt.slice(0, 30),
+        prompt: text
+      };
+    }
   } catch (error) {
     console.error("Erro ao otimizar prompt:", error);
     throw error;

@@ -57,7 +57,10 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
     setInput('');
     
     try {
-      const optimized = await optimizePrompt(originalText, category);
+      const data = await optimizePrompt(originalText, category);
+      const optimized = data.prompt;
+      const title = data.title;
+      
       setResult(optimized);
 
       const newPrompt = {
@@ -65,18 +68,18 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         category,
         original_prompt: originalText,
         optimized_prompt: optimized,
-        title: originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
+        title: title || originalText.slice(0, 30) + (originalText.length > 30 ? '...' : ''),
         github_links: [],
       };
 
-      const { data, error } = await supabase
+      const { data: savedData, error } = await supabase
         .from('prompts')
         .insert(newPrompt)
         .select()
         .single();
 
-      if (!error && data) {
-        onSave(data);
+      if (!error && savedData) {
+        onSave(savedData);
       }
     } catch (err) {
       console.error(err);
@@ -99,7 +102,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#f0f2f5] dark:bg-space-900 transition-colors">
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 pb-80">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 pb-96">
         <AnimatePresence mode="popLayout">
           {!currentOriginal && !loading ? (
             <motion.div 
