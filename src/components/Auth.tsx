@@ -1,0 +1,142 @@
+import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { Rocket, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
+
+export default function Auth() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName }
+          }
+        });
+        if (error) throw error;
+        alert('Verifique seu e-mail para confirmar o cadastro!');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-space-900 transition-colors">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-8 rounded-xl shadow-2xl"
+      >
+        <div className="flex flex-col items-center gap-2 mb-8 text-center">
+          <div className="size-12 bg-brand/10 rounded-xl flex items-center justify-center text-brand mb-2">
+            <Rocket size={32} />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight dark:text-white">GraviPrompt</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            {isLogin ? 'Bem-vindo de volta à fronteira espacial' : 'Comece a criar prompts incríveis hoje'}
+          </p>
+        </div>
+
+        <form onSubmit={handleAuth} className="space-y-5">
+          {error && (
+            <div className="p-3 text-sm bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Nome Completo</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Rocket size={18} />
+                </span>
+                <input
+                  required
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                  placeholder="Como devemos te chamar?"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">E-mail</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                placeholder="seu@email.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Senha</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-3 pl-11 pr-12 focus:ring-2 focus:ring-brand outline-none transition-all dark:text-white"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            disabled={loading}
+            className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Entrar' : 'Criar conta')}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
+          {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-brand font-bold hover:underline ml-1"
+          >
+            {isLogin ? 'Criar conta' : 'Fazer login'}
+          </button>
+        </p>
+      </motion.div>
+    </div>
+  );
+}
