@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface SidebarProps {
   history: OptimizedPrompt[];
   onSelect: (prompt: OptimizedPrompt | null) => void;
+  onDelete: (id: string) => void;
   onOpenSettings: () => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -14,6 +15,7 @@ interface SidebarProps {
 export default function Sidebar({ 
   history, 
   onSelect, 
+  onDelete,
   onOpenSettings, 
   isOpen, 
   setIsOpen,
@@ -46,21 +48,36 @@ export default function Sidebar({
           
           <AnimatePresence>
             {Array.isArray(history) && history.map((item) => item && (
-              <motion.button
+              <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                onClick={() => onSelect(item)}
-                className={`w-full text-left px-3 py-2 rounded-theme flex items-center gap-3 group transition-colors ${
-                  activeId === item.id 
-                    ? 'bg-slate-200 dark:bg-space-800 text-primary' 
-                    : 'hover:bg-slate-200 dark:hover:bg-space-800 text-slate-600 dark:text-slate-400'
-                }`}
+                className="group relative"
               >
-                <span className="material-symbols-outlined text-[18px] opacity-50 shrink-0">chat_bubble</span>
-                <span className="truncate text-sm">{item.title || item.category}</span>
-              </motion.button>
+                <button
+                  onClick={() => onSelect(item)}
+                  className={`w-full text-left px-3 py-2 rounded-theme flex items-center gap-3 transition-colors pr-10 ${
+                    activeId === item.id 
+                      ? 'bg-slate-200 dark:bg-space-800 text-primary' 
+                      : 'hover:bg-slate-200 dark:hover:bg-space-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px] opacity-50 shrink-0">chat_bubble</span>
+                  <span className="truncate text-sm">{item.title || item.category}</span>
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (item.id) onDelete(item.id);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all text-slate-400"
+                  title="Excluir"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </motion.div>
             ))}
           </AnimatePresence>
           

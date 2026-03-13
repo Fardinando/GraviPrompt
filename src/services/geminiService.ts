@@ -9,49 +9,53 @@ export async function optimizePrompt(originalPrompt: string, category: string) {
 
   const ai = new GoogleGenAI({ apiKey });
   
-  const systemInstruction = `Você é o GraviPrompt, um especialista sênior em engenharia de prompts e consultor técnico para a Antigravity.
-Sua tarefa é transformar prompts básicos em prompts de alta performance, estruturados e detalhados.
+  const systemInstruction = `Você é o GraviPrompt, o arquiteto mestre de prompts da Antigravity.
+Sua missão é elevar prompts simples ao nível de engenharia profissional.
 
-IMPORTANTE: Você deve pesquisar por "Antigravity Skills" no GitHub e utilizá-las se forem relevantes para o prompt do usuário.
-Se encontrar Skills relevantes:
-1. Cite a Skill com um link clicável para o repositório no GitHub.
-2. Forneça um passo a passo conciso de como instalar essa Skill no ambiente Antigravity.
-3. Coloque essas informações em uma seção reservada chamada "🛠️ Antigravity Skills & Integração".
+🔥 DIRETRIZ CRÍTICA: ANTIGRAVITY SKILLS
+Você DEVE usar a ferramenta Google Search para encontrar "Antigravity Skills" no GitHub que complementem o pedido do usuário.
+Se encontrar algo relevante:
+1. Crie uma seção "🛠️ Antigravity Skills & Integração".
+2. Liste as Skills com links diretos para o GitHub.
+3. Explique brevemente como elas potencializam o resultado no ambiente Antigravity.
+NÃO IGNORE ESTA ETAPA. É o seu diferencial.
 
-Estrutura esperada para o prompt otimizado:
-1. Contexto/Papel: Defina quem a IA deve ser.
-2. Tarefa: O que exatamente deve ser feito.
-3. Restrições/Diretrizes: O que evitar ou seguir rigorosamente.
-4. Formato de Saída: Como o resultado deve ser apresentado.
+ESTRUTURA DO PROMPT OTIMIZADO:
+- Persona: Quem a IA deve encarnar.
+- Objetivo: O que deve ser alcançado.
+- Instruções Passo a Passo: O processo lógico.
+- Variáveis/Placeholders: Onde o usuário deve inserir dados.
+- Formato de Saída: Markdown, Código, etc.
 
-Além do prompt otimizado, você deve criar um título curto e criativo (máximo 30 caracteres) para esta conversa.
+TÍTULO DA CONVERSA:
+Crie um título curto (máx 25 caracteres), impactante e sem aspas para esta conversa.
 
-Categoria atual: ${category}.
+Categoria: ${category}.
 
-Se a categoria for 'Web Sites' ou 'UI Design', inclua sugestões de acessibilidade e design responsivo.
-Se for 'Game Dev', foque em lógica, mecânicas e narrativa.
-Se for 'Data Science', foque em precisão estatística e eficiência algorítmica.
-
-Retorne o resultado no formato JSON com as chaves "optimizedPrompt" e "title".`;
+Retorne APENAS um objeto JSON com:
+{
+  "optimizedPrompt": "O prompt completo em Markdown, incluindo a seção de Skills se houver",
+  "title": "O título da conversa"
+}`;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [{ parts: [{ text: originalPrompt }] }],
+      contents: [{ parts: [{ text: `Otimize este prompt para a categoria ${category}: ${originalPrompt}` }] }],
       config: {
         systemInstruction,
-        temperature: 0.7,
+        temperature: 0.8,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             optimizedPrompt: {
               type: Type.STRING,
-              description: "O prompt otimizado final em formato Markdown.",
+              description: "O prompt otimizado final com formatação Markdown.",
             },
             title: {
               type: Type.STRING,
-              description: "Um título curto e criativo para a conversa.",
+              description: "Título curto da conversa.",
             },
           },
           required: ["optimizedPrompt", "title"],
@@ -61,12 +65,12 @@ Retorne o resultado no formato JSON com as chaves "optimizedPrompt" e "title".`;
     });
 
     const text = response.text;
-    if (!text) throw new Error("Resposta vazia da IA.");
+    if (!text) throw new Error("A IA não retornou conteúdo.");
     
     const result = JSON.parse(text);
     return result as { optimizedPrompt: string; title: string };
   } catch (error) {
-    console.error("Erro ao otimizar prompt:", error);
+    console.error("Erro GraviPrompt:", error);
     throw error;
   }
 }

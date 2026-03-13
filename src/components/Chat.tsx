@@ -69,30 +69,42 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         github_links: [],
       };
 
-      const { data, error } = await supabase
-        .from('prompts')
-        .insert(newPrompt)
-        .select()
-        .single();
+      // Tenta salvar no Supabase
+      try {
+        const { data, error } = await supabase
+          .from('prompts')
+          .insert(newPrompt)
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Erro ao salvar no Supabase:', error);
-        // Se falhar por causa da coluna 'title', tenta salvar sem ela como fallback
-        if (error.message.includes('column "title" of relation "prompts" does not exist')) {
-          const fallbackPrompt = { ...newPrompt };
-          delete (fallbackPrompt as any).title;
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('prompts')
-            .insert(fallbackPrompt)
-            .select()
-            .single();
-          
-          if (!fallbackError && fallbackData) {
-            onSave(fallbackData);
+        if (error) {
+          console.error('Erro Supabase:', error);
+          // Se falhar por causa da coluna 'title', tenta sem ela
+          if (error.message.includes('column "title"')) {
+            const fallbackPrompt = { ...newPrompt };
+            delete (fallbackPrompt as any).title;
+            const { data: fbData, error: fbError } = await supabase
+              .from('prompts')
+              .insert(fallbackPrompt)
+              .select()
+              .single();
+            
+            if (!fbError && fbData) {
+              onSave({ ...fbData, title: newPrompt.title });
+            } else {
+              // Se tudo falhar, salva localmente no estado do pai
+              onSave({ ...newPrompt, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any);
+            }
+          } else {
+            // Outro erro, salva localmente para não perder a sessão
+            onSave({ ...newPrompt, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any);
           }
+        } else if (data) {
+          onSave(data);
         }
-      } else if (data) {
-        onSave(data);
+      } catch (dbErr) {
+        console.error('Erro DB Crítico:', dbErr);
+        onSave({ ...newPrompt, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any);
       }
     } catch (err) {
       console.error(err);

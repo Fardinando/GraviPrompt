@@ -37,9 +37,19 @@ export default function Dashboard({ user }: DashboardProps) {
       applyTheme(localTheme);
     }
 
+    // Try local storage history first as immediate fallback
+    const localHistory = localStorage.getItem(`graviprompt_history_${user.id}`);
+    if (localHistory) {
+      try {
+        setHistory(JSON.parse(localHistory));
+      } catch (e) {
+        console.error('Erro ao ler LocalStorage:', e);
+      }
+    }
+
     try {
       // Fetch Profile
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -47,22 +57,29 @@ export default function Dashboard({ user }: DashboardProps) {
       
       if (profileData) {
         setProfile(profileData);
-      } else {
-        // Create default profile
+      } else if (profileError?.code === 'PGRST116' || profileError?.message?.includes('Could not find the table')) {
+        // Create default profile if table exists but no profile, or if we want to handle missing table gracefully
         const newProfile = { id: user.id, theme: 'system' };
-        await supabase.from('profiles').insert(newProfile);
-        setProfile(newProfile as UserProfile);
+        try {
+          await supabase.from('profiles').insert(newProfile);
+          setProfile(newProfile as UserProfile);
+        } catch (e) {
+          setProfile(newProfile as UserProfile); // Fallback to local profile
+        }
       }
 
-      // Fetch History
-      const { data: historyData } = await supabase
+      // Fetch History from Supabase
+      const { data: historyData, error: historyError } = await supabase
         .from('prompts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (historyData) {
+      if (!historyError && historyData) {
         setHistory(historyData);
+        localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(historyData));
+      } else if (historyError) {
+        console.warn('Supabase History Error (PGRST205 is expected if table is missing):', historyError);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -81,18 +98,46 @@ export default function Dashboard({ user }: DashboardProps) {
   };
 
   const handleSavePrompt = (prompt: OptimizedPrompt) => {
-    setHistory(prev => [prompt, ...prev]);
+    setHistory(prev => {
+      const updated = [prompt, ...prev];
+      localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(updated));
+      return updated;
+    });
     setActivePrompt(prompt);
   };
 
   const handleClearHistory = async () => {
-    const { error } = await supabase
-      .from('prompts')
-      .delete()
-      .eq('user_id', user.id);
+    try {
+      await supabase
+        .from('prompts')
+        .delete()
+        .eq('user_id', user.id);
+    } catch (e) {
+      console.warn('Erro ao deletar no Supabase:', e);
+    }
     
-    if (!error) {
-      setHistory([]);
+    setHistory([]);
+    setActivePrompt(null);
+    localStorage.removeItem(`graviprompt_history_${user.id}`);
+  };
+
+  const handleDeletePrompt = async (id: string) => {
+    try {
+      await supabase
+        .from('prompts')
+        .delete()
+        .eq('id', id);
+    } catch (e) {
+      console.warn('Erro ao deletar prompt no Supabase:', e);
+    }
+
+    setHistory(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    if (activePrompt?.id === id) {
       setActivePrompt(null);
     }
   };
@@ -124,6 +169,7 @@ export default function Dashboard({ user }: DashboardProps) {
           setActivePrompt(p);
           if (window.innerWidth < 768) setSidebarOpen(false);
         }}
+        onDelete={handleDeletePrompt}
         onOpenSettings={() => setSettingsOpen(true)}
         activeId={activePrompt?.id}
       />
