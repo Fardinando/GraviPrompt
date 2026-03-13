@@ -13,10 +13,20 @@ interface ChatProps {
 }
 
 const CATEGORIES: Category[] = ['UI Design', 'Game Dev', 'Web Sites', 'Data Science', 'General'];
+const TARGETS = [
+  'ChatGPT', 
+  'Grok', 
+  'Claude', 
+  'Deepseek', 
+  'Gemini', 
+  'Antigravity', 
+  'Solução de Problemas'
+];
 
 export default function Chat({ user, activePrompt, onSave }: ChatProps) {
   const [input, setInput] = useState('');
   const [category, setCategory] = useState<Category>('UI Design');
+  const [target, setTarget] = useState('ChatGPT');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [currentOriginal, setCurrentOriginal] = useState<string | null>(null);
@@ -57,7 +67,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
     setInput('');
     
     try {
-      const { optimizedPrompt, title } = await optimizePrompt(originalText, category);
+      const { optimizedPrompt, title } = await optimizePrompt(originalText, category, target);
       setResult(optimizedPrompt);
 
       const newPrompt = {
@@ -235,6 +245,18 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-blue-600/20 rounded-theme blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-theme shadow-2xl overflow-hidden">
+              <div className="flex items-center px-4 py-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-space-800/50">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Otimizar para:</span>
+                <select 
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  className="bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 cursor-pointer"
+                >
+                  {TARGETS.map(t => (
+                    <option key={t} value={t} className="bg-white dark:bg-space-800">{t}</option>
+                  ))}
+                </select>
+              </div>
               <textarea
                 ref={textareaRef}
                 value={input}
