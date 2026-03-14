@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import Chat from '../components/Chat';
 import SettingsModal from '../components/SettingsModal';
 import { OptimizedPrompt, UserProfile } from '../types';
+import { promptService } from '../services/promptService';
 
 interface DashboardProps {
   user: any;
@@ -31,24 +32,31 @@ export default function Dashboard({ user }: DashboardProps) {
   const fetchData = async () => {
     setLoading(true);
     
-    // Try local storage theme first
+    // 1. Try local storage theme first for immediate application
     const localTheme = localStorage.getItem('graviprompt-theme');
     if (localTheme) {
       applyTheme(localTheme);
     }
 
-    // Try local storage history first as immediate fallback
+    // 2. Try local storage history first as immediate fallback
+    let currentHistory: OptimizedPrompt[] = [];
     const localHistory = localStorage.getItem(`graviprompt_history_${user.id}`);
     if (localHistory) {
       try {
-        setHistory(JSON.parse(localHistory));
+        const parsed = JSON.parse(localHistory);
+        if (Array.isArray(parsed)) {
+          currentHistory = parsed.filter((item, index, self) =>
+            item && index === self.findIndex((t) => t && t.id === item.id)
+          );
+          setHistory(currentHistory);
+        }
       } catch (e) {
         console.error('Erro ao ler LocalStorage:', e);
       }
     }
 
     try {
-      // Fetch Profile
+      // 3. Fetch Profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -57,34 +65,75 @@ export default function Dashboard({ user }: DashboardProps) {
       
       if (profileData) {
         setProfile(profileData);
-      } else if (profileError?.code === 'PGRST116' || profileError?.message?.includes('Could not find the table')) {
-        // Create default profile if table exists but no profile, or if we want to handle missing table gracefully
-        const newProfile = { id: user.id, theme: 'system' };
+        applyTheme(profileData.theme);
+        localStorage.setItem('graviprompt-theme', profileData.theme);
+      } else if (profileError?.code === 'PGRST116') {
+        const newProfile = { id: user.id, theme: localTheme || 'system' };
         try {
           await supabase.from('profiles').insert(newProfile);
           setProfile(newProfile as UserProfile);
         } catch (e) {
-          setProfile(newProfile as UserProfile); // Fallback to local profile
+          setProfile(newProfile as UserProfile);
         }
       }
 
-      // Fetch History from Supabase
-      const { data: historyData, error: historyError } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      // 4. Fetch History from Supabase
+      const { data: historyData, error: historyError } = await promptService.fetchHistory(user.id);
 
       if (!historyError && historyData) {
-        setHistory(historyData);
-        localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(historyData));
+        // Source of truth is remote. 
+        // We only keep local items that are NOT in remote AND don't look like remote IDs (UUIDs)
+        // or if they were just created.
+        const remoteIds = new Set(historyData.map(h => h.id));
+        
+        // Items in local storage that are NOT in remote
+        const localOnly = currentHistory.filter(h => {
+          const isRemoteId = h.id.includes('-'); // Simple UUID check
+          return !remoteIds.has(h.id) && !isRemoteId;
+        });
+        
+        const mergedHistory = [...historyData, ...localOnly].sort((a, b) => 
+          new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+
+        const uniqueHistory = mergedHistory.filter((item, index, self) =>
+          index === self.findIndex((t) => t.id === item.id)
+        );
+
+        setHistory(uniqueHistory);
+        localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(uniqueHistory));
+
+        // Sync local-only items to Supabase
+        if (localOnly.length > 0) {
+          syncLocalHistory(localOnly);
+        }
       } else if (historyError) {
-        console.warn('Supabase History Error (PGRST205 is expected if table is missing):', historyError);
+        console.warn('Supabase History Error:', historyError);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncLocalHistory = async (localOnly: OptimizedPrompt[]) => {
+    console.log(`Sincronizando ${localOnly.length} conversas locais...`);
+    for (const prompt of localOnly) {
+      try {
+        const { id, ...dataToInsert } = prompt;
+        const { data, error } = await promptService.savePrompt(dataToInsert);
+        
+        if (!error && data) {
+          setHistory(prev => {
+            const updated = prev.map(p => p.id === id ? data : p);
+            localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(updated));
+            return updated;
+          });
+        }
+      } catch (e) {
+        console.error('Erro ao sincronizar prompt:', e);
+      }
     }
   };
 
@@ -99,7 +148,13 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const handleSavePrompt = (prompt: OptimizedPrompt) => {
     setHistory(prev => {
-      const updated = [prompt, ...prev];
+      const exists = prev.find(p => p.id === prompt.id);
+      let updated;
+      if (exists) {
+        updated = prev.map(p => p.id === prompt.id ? prompt : p);
+      } else {
+        updated = [prompt, ...prev];
+      }
       localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(updated));
       return updated;
     });
@@ -108,10 +163,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const handleClearHistory = async () => {
     try {
-      await supabase
-        .from('prompts')
-        .delete()
-        .eq('user_id', user.id);
+      await promptService.clearHistory(user.id);
     } catch (e) {
       console.warn('Erro ao deletar no Supabase:', e);
     }
@@ -123,10 +175,9 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const handleDeletePrompt = async (id: string) => {
     try {
-      await supabase
-        .from('prompts')
-        .delete()
-        .eq('id', id);
+      if (id.includes('-')) { // Only try to delete from Supabase if it's a remote ID
+        await promptService.deletePrompt(id);
+      }
     } catch (e) {
       console.warn('Erro ao deletar prompt no Supabase:', e);
     }
@@ -139,6 +190,51 @@ export default function Dashboard({ user }: DashboardProps) {
 
     if (activePrompt?.id === id) {
       setActivePrompt(null);
+    }
+  };
+
+  const handleRenamePrompt = async (id: string, newTitle: string) => {
+    try {
+      // Supabase IDs are UUIDs and contain hyphens. 
+      // Local temporary IDs might not.
+      if (id.includes('-')) {
+        await promptService.renamePrompt(id, newTitle);
+      }
+    } catch (e) {
+      console.error('Erro ao renomear no Supabase:', e);
+    }
+
+    setHistory(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, title: newTitle } : p);
+      localStorage.setItem(`graviprompt_history_${user.id}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    if (activePrompt?.id === id) {
+      setActivePrompt(prev => prev ? { ...prev, title: newTitle } : null);
+    }
+  };
+
+  const handleAIRename = async (id: string) => {
+    const prompt = history.find(p => p.id === id);
+    if (!prompt) return;
+
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      // Use the standard environment variable for the API key
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Gere um título curto e criativo (máximo 4 palavras) para esta conversa que começa com: "${prompt.original_prompt.substring(0, 200)}"`,
+      });
+      
+      const newTitle = response.text?.trim().replace(/^["']|["']$/g, '') || 'Conversa Otimizada';
+      if (newTitle) {
+        await handleRenamePrompt(id, newTitle);
+      }
+    } catch (e) {
+      console.error('Erro ao renomear com IA:', e);
+      throw e; // Re-throw to be caught by the sidebar UI
     }
   };
 
@@ -170,12 +266,14 @@ export default function Dashboard({ user }: DashboardProps) {
           if (window.innerWidth < 768) setSidebarOpen(false);
         }}
         onDelete={handleDeletePrompt}
+        onRename={handleRenamePrompt}
+        onAIRename={handleAIRename}
         onOpenSettings={() => setSettingsOpen(true)}
         activeId={activePrompt?.id}
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col pt-14 md:pt-0 relative">
+      <main className="flex-1 flex flex-col pt-14 md:pt-0 relative overflow-hidden">
         <Chat 
           user={user} 
           activePrompt={activePrompt} 

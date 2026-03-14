@@ -16,6 +16,9 @@
   --radius-theme: 8px;
 }
 
+/* Enable class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     @apply antialiased;
