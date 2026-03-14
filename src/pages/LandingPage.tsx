@@ -7,6 +7,26 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const shareData = {
+      title: 'GraviPrompt - Otimização de Prompts Gratuita',
+      text: 'Eleve seus prompts de IA com otimização profissional e gratuita!',
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        // Simple visual feedback could be added here if needed
+      }
+    } catch (err) {
+      console.error('Erro ao compartilhar:', err);
+    }
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300 min-h-screen">
       {/* Top Navigation Bar */}
@@ -20,7 +40,12 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
           </div>
           <div className="hidden md:flex items-center gap-10">
             <a className="text-sm font-medium hover:text-primary transition-colors" href="#features">Features</a>
-            <a className="text-sm font-medium hover:text-primary transition-colors" href="#">Enterprise</a>
+            <div className="relative">
+              <a className="text-sm font-medium hover:text-primary transition-colors" href="#">Enterprise</a>
+              <span className="absolute -top-3 -right-14 px-1.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[8px] font-bold rounded-full uppercase tracking-tighter">
+                100% Free Forever
+              </span>
+            </div>
             <a className="text-sm font-medium hover:text-primary transition-colors" href="#">Documentation</a>
           </div>
           <div className="flex items-center gap-4">
@@ -70,7 +95,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-light"
           >
-            The premier optimization engine for UI Design, Game Dev, and Data Science. Engineering precision for the next generation of workflows. <span className="font-semibold text-slate-900 dark:text-slate-200">Unlimited access for everyone.</span>
+            The premier optimization engine for UI Design, Game Dev, and Data Science. Engineering precision for the next generation of workflows. <span className="font-semibold text-slate-900 dark:text-slate-200 border-2 border-dashed border-primary/40 px-2 py-1 rounded-lg">Unlimited access for everyone.</span>
           </motion.p>
           
           <motion.div 
@@ -85,9 +110,6 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
             >
               Get Started Now
               <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
-            <button className="flex items-center justify-center gap-2 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-900 dark:text-white px-8 py-4 rounded-xl text-lg font-bold transition-all active:scale-95">
-              View Demo
             </button>
           </motion.div>
 
@@ -234,7 +256,13 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
             <div className="flex gap-4">
               <a className="text-slate-400 hover:text-primary" href="#"><span className="material-symbols-outlined">public</span></a>
               <a className="text-slate-400 hover:text-primary" href="#"><span className="material-symbols-outlined">alternate_email</span></a>
-              <a className="text-slate-400 hover:text-primary" href="#"><span className="material-symbols-outlined">share</span></a>
+              <button 
+                onClick={handleShare}
+                className="text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                title="Compartilhar página"
+              >
+                <span className="material-symbols-outlined">share</span>
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-12 md:gap-24">
