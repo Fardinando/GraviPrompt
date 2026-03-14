@@ -221,14 +221,23 @@ export default function Dashboard({ user }: DashboardProps) {
 
     try {
       const { GoogleGenAI } = await import('@google/genai');
-      // Use the standard environment variable for the API key
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Check for both standard and VITE_ prefixed environment variables
+      const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('Gemini API Key não encontrada.');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Gere um título curto e criativo (máximo 4 palavras) para esta conversa que começa com: "${prompt.original_prompt.substring(0, 200)}"`,
       });
       
-      const newTitle = response.text?.trim().replace(/^["']|["']$/g, '') || 'Conversa Otimizada';
+      const newTitle = response.text?.trim()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '') || 'Conversa Otimizada';
       if (newTitle) {
         await handleRenamePrompt(id, newTitle);
       }

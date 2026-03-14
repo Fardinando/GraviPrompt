@@ -37,6 +37,23 @@ export default function Sidebar({
     return () => clearInterval(timer);
   }, []);
 
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+
+    if (menuOpenId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpenId]);
+
   const formattedTime = time.toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
     minute: '2-digit' 
@@ -154,18 +171,14 @@ export default function Sidebar({
 
                           <AnimatePresence>
                             {menuOpenId === item.id && (
-                              <>
-                                <div 
-                                  className="fixed inset-0 z-[60]" 
-                                  onClick={() => setMenuOpenId(null)}
-                                />
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-[70] py-1 overflow-hidden"
-                                >
+                              <motion.div
+                                ref={menuRef}
+                                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-[70] py-1 overflow-hidden"
+                              >
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
@@ -211,7 +224,6 @@ export default function Sidebar({
                                     Excluir Conversa
                                   </button>
                                 </motion.div>
-                              </>
                             )}
                           </AnimatePresence>
                         </div>
