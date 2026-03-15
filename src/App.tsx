@@ -52,17 +52,54 @@ export default function App() {
 
   useEffect(() => {
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    const initSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn('Erro ao recuperar sessão:', error.message);
+          // Se o erro for relacionado a token inválido, limpamos a sessão local
+          if (error.message.includes('refresh_token') || error.message.includes('Refresh Token')) {
+            await supabase.auth.signOut();
+            setSession(null);
+          }
+        } else {
+          setSession(session);
+        }
+      } catch (err) {
+        console.error('Erro inesperado na inicialização da auth:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth Event:', event);
       setSession(session);
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety net for background refresh errors
+    const handleUnhandledRejection = (e: PromiseRejectionEvent) => {
+      if (e.reason?.message?.includes('Refresh Token') || e.reason?.message?.includes('refresh_token')) {
+        console.warn('Background refresh token error caught:', e.reason.message);
+        supabase.auth.signOut().then(() => {
+          setSession(null);
+          window.location.reload(); // Force reload to clear any stuck state
+        });
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   if (loading) {
