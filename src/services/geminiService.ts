@@ -113,6 +113,22 @@ Como o alvo é "Antigravity", você DEVE usar a ferramenta Google Search para en
   "title": "O título da conversa"
 }`;
 
+  // Convert history to Gemini format
+  const contents = history.map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'model',
+    parts: [{ text: Array.isArray(msg.content) ? msg.content[msg.currentVersion || 0] : msg.content }]
+  }));
+
+  // Add current message
+  contents.push({
+    role: 'user',
+    parts: [{ text: isResearchMode 
+      ? `Realize uma pesquisa profunda sobre o tópico: ${originalPrompt}`
+      : isProblemSolving 
+      ? `Resolva este problema ou continue a conversa: ${originalPrompt}` 
+      : `Otimize este prompt ou refine a otimização anterior para ${target} na categoria ${category}: ${originalPrompt}` }]
+  });
+
   try {
     const config: any = {
       systemInstruction,
@@ -146,22 +162,6 @@ Como o alvo é "Antigravity", você DEVE usar a ferramenta Google Search para en
     tools.push({ urlContext: {} });
     config.tools = tools;
 
-    // Convert history to Gemini format
-    const contents = history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: Array.isArray(msg.content) ? msg.content[msg.currentVersion || 0] : msg.content }]
-    }));
-
-    // Add current message
-    contents.push({
-      role: 'user',
-      parts: [{ text: isResearchMode 
-        ? `Realize uma pesquisa profunda sobre o tópico: ${originalPrompt}`
-        : isProblemSolving 
-        ? `Resolva este problema ou continue a conversa: ${originalPrompt}` 
-        : `Otimize este prompt ou refine a otimização anterior para ${target} na categoria ${category}: ${originalPrompt}` }]
-    });
-
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents,
@@ -173,7 +173,47 @@ Como o alvo é "Antigravity", você DEVE usar a ferramenta Google Search para en
     
     const result = JSON.parse(text);
     return result as { optimizedPrompt: string; title: string; skillsMarkdown?: string };
-  } catch (error) {
+  } catch (error: any) {
+    // Se o erro for de quota (429) e estávamos usando ferramentas de busca, tenta sem as ferramentas
+    if ((error?.message?.includes('429') || error?.message?.includes('quota')) && (isAntigravity || isResearchMode)) {
+      console.warn("Limite de busca atingido. Tentando otimização simples sem busca...");
+      
+      try {
+        const aiFallback = new GoogleGenAI({ apiKey });
+        const fallbackConfig = {
+          systemInstruction: systemInstruction + "\n\nAVISO: A ferramenta de busca está temporariamente indisponível por limite de cota. Otimize o prompt com base no seu conhecimento interno, sem realizar buscas externas.",
+          temperature: 0.7,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              optimizedPrompt: { type: Type.STRING },
+              title: { type: Type.STRING },
+              skillsMarkdown: { type: Type.STRING }
+            },
+            required: ["optimizedPrompt", "title"]
+          }
+        };
+
+        const fallbackResponse = await aiFallback.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents,
+          config: fallbackConfig,
+        });
+
+        const fallbackText = fallbackResponse.text;
+        if (fallbackText) {
+          const result = JSON.parse(fallbackText);
+          if (isAntigravity) {
+            result.skillsMarkdown = "> ⚠️ **Nota:** O limite de buscas da API foi atingido. As Skills não puderam ser pesquisadas em tempo real, mas o prompt foi otimizado normalmente.";
+          }
+          return result;
+        }
+      } catch (fallbackError) {
+        console.error("Erro no fallback:", fallbackError);
+      }
+    }
+
     console.error("Erro GraviPrompt:", error);
     throw error;
   }

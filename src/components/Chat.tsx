@@ -246,10 +246,17 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
           onSave({ ...newPrompt, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
-      alert('Falha ao chamar a IA. Verifique sua conexão.');
+      
+      let errorMessage = 'Falha ao chamar a IA. Verifique sua conexão.';
+      
+      if (err?.message?.includes('429') || err?.message?.includes('quota') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = 'Limite de uso atingido (Quota Exceeded). Por favor, aguarde um momento ou tente novamente mais tarde. Isso acontece quando muitas requisições são feitas em pouco tempo.';
+      }
+
+      alert(errorMessage);
       setMessages(currentHistory);
       setInput(userMessage.content as string);
     } finally {
@@ -323,10 +330,16 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
           onSave({ ...activePrompt, optimized_prompt: optimizedPrompt, messages: updatedMessages, skills_markdown: currentSkills });
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
-      alert('Falha ao regenerar resposta.');
+      
+      let errorMessage = 'Falha ao regenerar resposta.';
+      if (err?.message?.includes('429') || err?.message?.includes('quota') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = 'Limite de uso atingido (Quota Exceeded). Por favor, aguarde um momento ou tente novamente mais tarde.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
