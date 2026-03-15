@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Category, OptimizedPrompt, ChatMessage } from '../types';
 import { optimizePrompt } from '../services/geminiService';
 import { promptService } from '../services/promptService';
@@ -418,10 +420,12 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                         <p className="whitespace-pre-wrap">{msg.content as string}</p>
                       ) : (
                         <>
-                          <ReactMarkdown>
-                            {Array.isArray(msg.content) 
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                          >
+                            {(Array.isArray(msg.content) 
                               ? msg.content[msg.currentVersion || 0] 
-                              : msg.content}
+                              : msg.content).replace(/\\n/g, '\n')}
                           </ReactMarkdown>
                           
                           {/* Skills Section - Only for the last assistant message in Antigravity mode */}
@@ -432,10 +436,10 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest">Antigravity Skills & Integração</span>
                               </div>
                               <div className="prose-sm dark:prose-invert prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
-                                <ReactMarkdown>
-                                  {msg.skillsContent && Array.isArray(msg.skillsContent)
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                                  {(msg.skillsContent && Array.isArray(msg.skillsContent)
                                     ? msg.skillsContent[msg.currentVersion || 0]
-                                    : activePrompt?.skills_markdown || ''}
+                                    : activePrompt?.skills_markdown || '').replace(/\\n/g, '\n')}
                                 </ReactMarkdown>
                               </div>
                             </div>
