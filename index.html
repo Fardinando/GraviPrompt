@@ -6,6 +6,26 @@
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/96/rocket.png" />
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/rocket.png" />
     <title>GraviPrompt - Otimizador de Prompts</title>
+    <script>
+      // Força a remoção de Service Workers antigos que causam erro 404
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+
+      // Detecta falha no carregamento de scripts/css (erro 404) e força recarregamento limpo
+      window.addEventListener('error', function(e) {
+        if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+          console.warn('Falha ao carregar recurso crítico, limpando cache...');
+          if (window.location.search.indexOf('clear') === -1) {
+            window.location.search = 'clear=' + Date.now();
+          }
+        }
+      }, true);
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script>
