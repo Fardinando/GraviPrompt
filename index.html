@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#f27d26" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/96/rocket.png" />
@@ -14,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script>
       (function() {
+        // Theme logic
         try {
           const savedTheme = localStorage.getItem('graviprompt-theme');
           if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -23,22 +25,35 @@
           }
         } catch (e) {}
 
-        // Global Error Handler for Asset Loading (404s on JS/CSS)
+        // Auto-fix for 404 assets (common after new deployments)
+        function triggerReload() {
+          const lastReload = sessionStorage.getItem('last-error-reload');
+          const now = Date.now();
+          if (!lastReload || (now - parseInt(lastReload)) > 5000) {
+            sessionStorage.setItem('last-error-reload', now.toString());
+            window.location.reload();
+          }
+        }
+
         window.addEventListener('error', function(e) {
           if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
             const url = e.target.src || e.target.href;
             if (url && (url.includes('.js') || url.includes('.css'))) {
-              console.warn('Asset failed to load, likely due to a new version. Reloading...', url);
-              // Only reload if we haven't reloaded in the last 10 seconds to avoid loops
-              const lastReload = sessionStorage.getItem('last-error-reload');
-              const now = Date.now();
-              if (!lastReload || (now - parseInt(lastReload)) > 10000) {
-                sessionStorage.setItem('last-error-reload', now.toString());
-                window.location.reload();
-              }
+              triggerReload();
             }
           }
         }, true);
+
+        // Fallback: If page is still white after 4 seconds, force reload
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            const root = document.getElementById('root');
+            if (root && root.innerHTML === '') {
+              console.warn('Root is empty, likely a load failure. Reloading...');
+              triggerReload();
+            }
+          }, 4000);
+        });
       })();
     </script>
   </head>
