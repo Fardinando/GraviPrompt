@@ -1,0 +1,26 @@
+{
+  "name": "GraviPrompt AI",
+  "short_name": "GraviPrompt",
+  "description": "Otimização profissional de prompts para IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#f27d26",
+  "icons": [
+    {
+      "src": "https://ais-dev-mbstuygh7wnlk5o46jxhw6-426910668439.us-east1.run.app/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "https://picsum.photos/seed/graviprompt/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/graviprompt/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

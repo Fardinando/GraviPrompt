@@ -5,8 +5,9 @@ export const promptService = {
   async savePrompt(prompt: Partial<OptimizedPrompt>): Promise<{ data: OptimizedPrompt | null; error: any }> {
     const { id, ...data } = prompt;
     
-    if (id && !id.includes('-')) { // Simple check for local vs remote ID (remote IDs are usually UUIDs)
-      // This is likely a remote ID, try to update
+    // Remote IDs (Supabase UUIDs) ALWAYS include hyphens.
+    // If we have an ID and it looks like a remote one, we update.
+    if (id && id.includes('-')) { 
       const { data: updatedData, error } = await supabase
         .from('prompts')
         .update(data)
