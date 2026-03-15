@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="theme-color" content="#f27d26" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script>
       (function() {
-        // Theme logic
+        // 1. Theme logic
         try {
           const savedTheme = localStorage.getItem('graviprompt-theme');
           if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -25,34 +28,39 @@
           }
         } catch (e) {}
 
-        // Auto-fix for 404 assets (common after new deployments)
-        function triggerReload() {
-          const lastReload = sessionStorage.getItem('last-error-reload');
+        // 2. Aggressive Auto-Reload Logic
+        function forceFreshReload() {
           const now = Date.now();
-          if (!lastReload || (now - parseInt(lastReload)) > 5000) {
-            sessionStorage.setItem('last-error-reload', now.toString());
-            window.location.reload();
+          const lastReload = sessionStorage.getItem('last-force-reload');
+          
+          // Prevent infinite reload loops (max 1 reload every 10 seconds)
+          if (!lastReload || (now - parseInt(lastReload)) > 10000) {
+            sessionStorage.setItem('last-force-reload', now.toString());
+            console.warn('Stale assets detected. Forcing fresh reload...');
+            
+            // Add a timestamp to the URL to bypass browser/CDN cache
+            const url = new URL(window.location.href);
+            url.searchParams.set('v', now.toString());
+            window.location.replace(url.toString());
           }
         }
 
+        // Catch 404s on scripts/css immediately
         window.addEventListener('error', function(e) {
           if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
-            const url = e.target.src || e.target.href;
-            if (url && (url.includes('.js') || url.includes('.css'))) {
-              triggerReload();
-            }
+            forceFreshReload();
           }
         }, true);
 
-        // Fallback: If page is still white after 4 seconds, force reload
+        // 3. White Screen Detection (Fallback)
+        // If the app hasn't rendered anything after 3.5 seconds, something is wrong
         window.addEventListener('load', function() {
           setTimeout(function() {
             const root = document.getElementById('root');
-            if (root && root.innerHTML === '') {
-              console.warn('Root is empty, likely a load failure. Reloading...');
-              triggerReload();
+            if (root && root.childNodes.length === 0) {
+              forceFreshReload();
             }
-          }, 4000);
+          }, 3500);
         });
       })();
     </script>
