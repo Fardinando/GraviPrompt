@@ -4,18 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Category, OptimizedPrompt, ChatMessage } from '../types';
-import { optimizePrompt } from '../services/geminiService';
+import { Category, OptimizedPrompt, ChatMessage, UserProfile } from '../types';
+import { useTranslation, TranslationKey } from '../lib/i18n';
+import { SUB_CATEGORY_KEYS } from '../constants';
+import { optimizePrompt } from '../services/aiService';
 import { promptService } from '../services/promptService';
 import { supabase } from '../lib/supabase';
 
 interface ChatProps {
   user: any;
+  profile: UserProfile | null;
   activePrompt: OptimizedPrompt | null;
   onSave: (prompt: OptimizedPrompt) => void;
 }
 
-const CATEGORIES: Category[] = ['UI Design', 'Game Dev', 'Web Sites', 'Data Science', 'General', 'Pesquisa Profunda'];
 const TARGETS = [
   'ChatGPT', 
   'Claude', 
@@ -29,6 +31,39 @@ const TARGETS = [
   'Outras IAs'
 ];
 
+const CATEGORY_GROUPS = [
+  {
+    id: 'desenvolvimento',
+    labelKey: 'group.desenvolvimento' as TranslationKey,
+    icon: 'code',
+    subCategories: ['UI Design', 'Game Dev', 'Web Sites', 'Data Science'] as Category[]
+  },
+  {
+    id: 'texto',
+    labelKey: 'group.texto' as TranslationKey,
+    icon: 'edit_note',
+    subCategories: ['História Longa', 'Texto Formal', 'E-mail Profissional', 'Artigo/Blog'] as Category[]
+  },
+  {
+    id: 'imagem',
+    labelKey: 'group.imagem' as TranslationKey,
+    icon: 'image',
+    subCategories: ['Realista', 'Artístico', 'Logo/Ícone', '3D/Render'] as Category[]
+  },
+  {
+    id: 'geral',
+    labelKey: 'group.geral' as TranslationKey,
+    icon: 'auto_awesome',
+    subCategories: ['General'] as Category[]
+  },
+  {
+    id: 'pesquisa',
+    labelKey: 'group.pesquisa' as TranslationKey,
+    icon: 'search',
+    subCategories: ['Pesquisa Profunda'] as Category[]
+  }
+];
+
 const TargetLogo = ({ target, className = "w-4 h-4" }: { target: string, className?: string }) => {
   switch (target) {
     case 'Solução de Problemas':
@@ -40,13 +75,18 @@ const TargetLogo = ({ target, className = "w-4 h-4" }: { target: string, classNa
   }
 };
 
-export default function Chat({ user, activePrompt, onSave }: ChatProps) {
+export default function Chat({ user, profile, activePrompt, onSave }: ChatProps) {
   const [input, setInput] = useState('');
   const [category, setCategory] = useState<Category>('UI Design');
   const [target, setTarget] = useState('ChatGPT');
   const [isTargetDropdownOpen, setIsTargetDropdownOpen] = useState(false);
+  const [activeGroup, setActiveGroup] = useState<string>('geral');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
+
+  const { t } = useTranslation(profile?.language || 'pt-BR');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +124,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsTargetDropdownOpen(false);
       }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -115,8 +158,14 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       ]);
       setInput('');
       setCategory(activePrompt.category as Category);
+      
+      // Find group for category
+      const group = CATEGORY_GROUPS.find(g => g.subCategories.includes(activePrompt.category as Category));
+      if (group) setActiveGroup(group.id);
     } else {
       setMessages([]);
+      setCategory('General');
+      setActiveGroup('geral');
       setInput('');
       setLoading(false);
     }
@@ -191,7 +240,8 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
         category, 
         target, 
         currentHistory,
-        researchParams
+        researchParams,
+        profile?.ai_model
       );
       
       if (abortControllerRef.current?.signal.aborted) return;
@@ -252,10 +302,10 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
       
-      let errorMessage = 'Falha ao chamar a IA. Verifique sua conexão.';
+      let errorMessage = t('chat.error.ai');
       
       if (err?.message?.includes('429') || err?.message?.includes('quota') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
-        errorMessage = 'Limite de uso atingido (Quota Exceeded). Por favor, aguarde um momento ou tente novamente mais tarde. Isso acontece quando muitas requisições são feitas em pouco tempo.';
+        errorMessage = t('chat.error.quota');
       }
 
       alert(errorMessage);
@@ -336,9 +386,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
       
-      let errorMessage = 'Falha ao regenerar resposta.';
+      let errorMessage = t('chat.error.regenerate');
       if (err?.message?.includes('429') || err?.message?.includes('quota') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
-        errorMessage = 'Limite de uso atingido (Quota Exceeded). Por favor, aguarde um momento ou tente novamente mais tarde.';
+        errorMessage = t('chat.error.quota_short');
       }
       
       alert(errorMessage);
@@ -402,13 +452,21 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                     {msg.role === 'assistant' && (
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-md text-primary">
-                          <span className="material-symbols-outlined text-[14px]">bolt</span>
-                          <span className="text-[9px] font-bold uppercase tracking-wider">{target}</span>
+                          <span className="material-symbols-outlined text-[14px]">
+                            {category === 'Pesquisa Profunda' ? 'search' : 'bolt'}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider">
+                            {category === 'Pesquisa Profunda' ? t('group.pesquisa') : (target === 'Solução de Problemas' ? t('target.solucao') : (target === 'Antigravity' ? t('target.antigravity') : target))}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-md text-slate-500 dark:text-slate-400">
-                          <span className="material-symbols-outlined text-[14px]">category</span>
-                          <span className="text-[9px] font-bold uppercase tracking-wider">{category}</span>
-                        </div>
+                        {category !== 'Pesquisa Profunda' && (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-md text-slate-500 dark:text-slate-400">
+                            <span className="material-symbols-outlined text-[14px]">category</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider">
+                              {t(SUB_CATEGORY_KEYS[category] || 'group.geral')}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                     
@@ -423,9 +481,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm, remarkBreaks]}
                           >
-                            {(Array.isArray(msg.content) 
+                            {((Array.isArray(msg.content) 
                               ? msg.content[msg.currentVersion || 0] 
-                              : msg.content).replace(/\\n/g, '\n')}
+                              : msg.content) || '').toString().replace(/\\n/g, '\n')}
                           </ReactMarkdown>
                           
                           {/* Skills Section - Only for the last assistant message in Antigravity mode */}
@@ -433,13 +491,13 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                             <div className="mt-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl">
                               <div className="flex items-center gap-2 mb-3 text-primary">
                                 <span className="material-symbols-outlined text-[18px]">terminal</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest">Antigravity Skills & Integração</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{t('chat.skills_title')}</span>
                               </div>
                               <div className="prose-sm dark:prose-invert prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
                                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                                  {(msg.skillsContent && Array.isArray(msg.skillsContent)
+                                  {((msg.skillsContent && Array.isArray(msg.skillsContent)
                                     ? msg.skillsContent[msg.currentVersion || 0]
-                                    : activePrompt?.skills_markdown || '').replace(/\\n/g, '\n')}
+                                    : activePrompt?.skills_markdown) || '').toString().replace(/\\n/g, '\n')}
                                 </ReactMarkdown>
                               </div>
                             </div>
@@ -538,12 +596,14 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                           <Loader2 className="animate-spin text-primary" size={24} />
                           <span className="text-sm text-slate-500 animate-pulse">
                             {target === 'Solução de Problemas' 
-                              ? 'Analisando problema e gerando solução...' 
+                              ? (profile?.language === 'en' ? 'Analyzing problem and generating solution...' : 'Analisando problema e gerando solução...') 
                               : target === 'Antigravity' 
-                                ? 'Otimizando prompt e buscando Skills...' 
+                                ? (profile?.language === 'en' ? 'Optimizing prompt and searching for Skills...' : 'Otimizando prompt e buscando Skills...') 
                                 : category === 'Pesquisa Profunda'
-                                  ? (countdown === 0 || countdown === null ? 'Estruturando resposta...' : 'Realizando pesquisa profunda em tempo real...')
-                                  : `Otimizando prompt para ${target}...`}
+                                  ? (countdown === 0 || countdown === null 
+                                      ? (profile?.language === 'en' ? 'Structuring response...' : 'Estruturando resposta...') 
+                                      : (profile?.language === 'en' ? 'Performing real-time deep research...' : 'Realizando pesquisa profunda em tempo real...'))
+                                  : `${profile?.language === 'en' ? 'Optimizing prompt for' : 'Otimizando prompt para'} ${t(SUB_CATEGORY_KEYS[category] || 'group.geral')}...`}
                           </span>
                         </div>
                         
@@ -573,20 +633,69 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
       {/* Input Area */}
       <div className="p-4 md:p-6 bg-white dark:bg-space-900 border-t border-slate-200 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-none">
         <div className="max-w-3xl mx-auto space-y-4">
-          {/* Category Chips */}
+          {/* Category Groups */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all ${
-                  category === cat 
-                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
-                    : 'bg-slate-100 dark:bg-space-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-primary/50'
-                }`}
-              >
-                {cat}
-              </button>
+            {CATEGORY_GROUPS.map((group) => (
+              <div key={group.id} className="relative">
+                <button
+                  id={`cat-group-${group.id}`}
+                  onClick={() => {
+                    setActiveGroup(group.id);
+                    if (group.subCategories.length === 1) {
+                      setCategory(group.subCategories[0]);
+                      setIsCategoryDropdownOpen(false);
+                    } else {
+                      setIsCategoryDropdownOpen(activeGroup === group.id ? !isCategoryDropdownOpen : true);
+                    }
+                  }}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all flex items-center gap-1.5 ${
+                    activeGroup === group.id 
+                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                      : 'bg-slate-100 dark:bg-space-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-primary/50'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">{group.icon}</span>
+                  {group.subCategories.includes(category) && group.id !== 'geral' && group.id !== 'pesquisa'
+                    ? t(SUB_CATEGORY_KEYS[category] || group.labelKey) 
+                    : t(group.labelKey)}
+                  {group.subCategories.length > 1 && (
+                    <span className={`material-symbols-outlined text-[14px] transition-transform ${isCategoryDropdownOpen && activeGroup === group.id ? 'rotate-180' : ''}`}>
+                      expand_more
+                    </span>
+                  )}
+                </button>
+
+                {/* Sub-category Dropdown */}
+                <AnimatePresence>
+                  {isCategoryDropdownOpen && activeGroup === group.id && group.subCategories.length > 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full mb-2 left-0 w-48 bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden z-[60]"
+                      ref={categoryDropdownRef}
+                    >
+                        {group.subCategories.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => {
+                              setCategory(sub);
+                              setIsCategoryDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-2.5 text-left text-xs font-bold transition-colors flex items-center justify-between ${
+                              category === sub 
+                                ? 'bg-primary/10 text-primary' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                            }`}
+                          >
+                            {t(SUB_CATEGORY_KEYS[sub] || 'group.geral')}
+                            {category === sub && <span className="material-symbols-outlined text-[16px]">check</span>}
+                          </button>
+                        ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ))}
           </div>
 
@@ -597,11 +706,12 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
               {category !== 'Pesquisa Profunda' && (
                 <div className="flex items-center px-4 py-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-space-800/50 relative z-50">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-3">
-                    Otimizar para:
+                    {t('chat.target')}:
                   </span>
                   
                   <div className="relative" ref={dropdownRef}>
                     <button
+                      id="target-dropdown"
                       onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
                       className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-200/50 dark:hover:bg-white/5 transition-all text-xs font-bold text-primary"
                     >
@@ -622,7 +732,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                           className="absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden py-1.5 z-[60]"
                         >
                           <div className="px-3 py-1.5 mb-1 border-b border-slate-100 dark:border-white/5">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Modelos Disponíveis</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('chat.target_models')}</span>
                           </div>
                           {TARGETS.map((t) => (
                             <button
@@ -665,7 +775,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                         <button
                           onClick={() => setIsResearchMinimized(true)}
                           className="absolute top-2 right-2 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors"
-                          title="Minimizar opções"
+                          title={t('chat.minimize')}
                         >
                           <span className="material-symbols-outlined text-[20px]">close_fullscreen</span>
                         </button>
@@ -673,7 +783,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pr-8">
                           {/* Tempo de Pesquisa */}
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tempo de Pesquisa</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('chat.research_time')}</label>
                             <select 
                               value={researchTime}
                               onChange={(e) => setResearchTime(Number(e.target.value))}
@@ -690,24 +800,23 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                             </select>
                           </div>
 
-                          {/* Nível de Pesquisa */}
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nível de Pesquisa</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('chat.research_level')}</label>
                             <select 
                               value={researchLevel}
                               onChange={(e) => setResearchLevel(e.target.value as any)}
                               className="w-full bg-slate-50 dark:bg-space-900 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm dark:text-white focus:ring-1 focus:ring-primary"
                             >
-                              <option value="Superficial">Superficial</option>
-                              <option value="Mediano">Mediano</option>
-                              <option value="Profundo">Profundo</option>
-                              <option value="Challenger Deep">Challenger Deep 🌊</option>
+                              <option value="Superficial">{t('chat.level.superficial')}</option>
+                              <option value="Mediano">{t('chat.level.mediano')}</option>
+                              <option value="Profundo">{t('chat.level.profundo')}</option>
+                              <option value="Challenger Deep">{t('chat.level.challenger')}</option>
                             </select>
                           </div>
 
                           {/* Opções das Fontes */}
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quantidade de Fontes</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('chat.source_count')}</label>
                             <select 
                               value={sourceCount}
                               onChange={(e) => setSourceCount(Number(e.target.value))}
@@ -715,19 +824,18 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                               className="w-full bg-slate-50 dark:bg-space-900 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm dark:text-white focus:ring-1 focus:ring-primary"
                             >
                               {researchLevel === 'Challenger Deep' ? (
-                                <option value={20}>20 fontes</option>
+                                <option value={20}>20 {t('chat.sources').toLowerCase()}</option>
                               ) : (
                                 Array.from({ length: 8 }, (_, i) => i + 3).map(s => (
-                                  <option key={s} value={s}>{s} fontes</option>
+                                  <option key={s} value={s}>{s} {t('chat.sources').toLowerCase()}</option>
                                 ))
                               )}
                             </select>
                           </div>
                         </div>
 
-                        {/* Tópico de Pesquisa */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tópico de Pesquisa</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('chat.research_topic')}</label>
                           <input 
                             type="text"
                             value={researchTopic}
@@ -737,7 +845,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                                 e.preventDefault();
                               }
                             }}
-                            placeholder="Sobre o que deseja pesquisar?"
+                            placeholder={t('chat.research_topic_placeholder')}
                             className="w-full bg-slate-50 dark:bg-space-900 border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm dark:text-white focus:ring-1 focus:ring-primary"
                           />
                         </div>
@@ -778,6 +886,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                 </AnimatePresence>
               ) : (
                 <textarea
+                  id="chat-input"
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -787,7 +896,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
                       handleOptimize();
                     }
                   }}
-                  placeholder="Descreva seu projeto ou cole seu prompt..."
+                  placeholder={t('chat.placeholder')}
                   className="w-full bg-transparent border-none focus:ring-0 text-slate-800 dark:text-slate-100 p-4 pr-16 resize-none block min-h-[60px] max-h-[200px]"
                   rows={1}
                 />
@@ -824,6 +933,7 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
               {category !== 'Pesquisa Profunda' && (
                 <div className="absolute right-2 bottom-2">
                   <button 
+                    id="send-button"
                     onClick={handleOptimize}
                     disabled={!loading && !input.trim()}
                     className={`p-2 ${loading ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-primary/90'} disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-theme transition-colors shadow-lg shadow-primary/20`}
@@ -836,7 +946,9 @@ export default function Chat({ user, activePrompt, onSave }: ChatProps) {
             </div>
           </div>
           <p className="text-[10px] text-center text-slate-400 dark:text-slate-500">
-            GraviPrompt pode gerar imprecisões. Revise sempre as saídas.
+            {profile?.language === 'en' 
+              ? 'GraviPrompt can generate inaccuracies. Always review outputs.' 
+              : 'GraviPrompt pode gerar imprecisões. Revise sempre as saídas.'}
           </p>
         </div>
       </div>

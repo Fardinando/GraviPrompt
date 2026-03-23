@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { Rocket, Zap, Shield, Globe, ArrowRight, Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { useTranslation } from '../lib/i18n';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -7,11 +9,13 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
+  const { t } = useTranslation();
+
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     const shareData = {
-      title: 'GraviPrompt - Otimização de Prompts Gratuita',
-      text: 'Eleve seus prompts de IA com otimização profissional e gratuita!',
+      title: t('landing.share_title'),
+      text: t('landing.share_text'),
       url: window.location.href,
     };
 
@@ -20,7 +24,6 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        // Simple visual feedback could be added here if needed
       }
     } catch (err) {
       console.error('Erro ao compartilhar:', err);
@@ -33,33 +36,31 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-background-dark/70 backdrop-blur-xl border-b border-primary/10 transition-colors">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-primary p-1.5 rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-xl">rocket_launch</span>
-            </div>
+            <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">GraviPrompt</span>
           </div>
           <div className="hidden md:flex items-center gap-10">
-            <a className="text-sm font-medium hover:text-primary transition-colors" href="#features">Features</a>
+            <a className="text-sm font-medium hover:text-primary transition-colors" href="#features">{t('landing.features')}</a>
             <div className="relative">
-              <a className="text-sm font-medium hover:text-primary transition-colors" href="#">Enterprise</a>
+              <a className="text-sm font-medium hover:text-primary transition-colors" href="#">{t('landing.enterprise')}</a>
               <span className="absolute -top-3 -right-14 px-1.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[8px] font-bold rounded-full uppercase tracking-tighter">
-                100% Free Forever
+                {t('landing.free_forever')}
               </span>
             </div>
-            <a className="text-sm font-medium hover:text-primary transition-colors" href="#">Documentation</a>
+            <a className="text-sm font-medium hover:text-primary transition-colors" href="#">{t('landing.documentation')}</a>
           </div>
           <div className="flex items-center gap-4">
             <button 
               onClick={onLogin}
               className="px-5 py-2 text-sm font-semibold hover:text-primary transition-colors"
             >
-              Login
+              {t('landing.login')}
             </button>
             <button 
               onClick={onStart}
               className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all"
             >
-              Start Optimizing
+              {t('landing.start')}
             </button>
           </div>
         </div>
@@ -77,7 +78,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            100% Free Forever
+            {t('landing.free_forever')}
           </motion.div>
           
           <motion.h1 
@@ -86,7 +87,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl font-black leading-tight tracking-tighter mb-6 text-slate-900 dark:text-slate-100"
           >
-            Elevate Your AI Prompts with <span className="text-primary font-black">Unlimited Free</span> Optimization
+            {t('landing.hero_title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">{t('landing.hero_title_accent')}</span>
           </motion.h1>
           
           <motion.p 
@@ -95,7 +96,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-light"
           >
-            The premier optimization engine for UI Design, Game Dev, and Data Science. Engineering precision for the next generation of workflows. <span className="font-semibold text-slate-900 dark:text-slate-200 border-2 border-dashed border-primary/40 px-2 py-1 rounded-lg">Unlimited access for everyone.</span>
+            {t('landing.hero_desc')} <span className="font-semibold text-slate-900 dark:text-slate-200 border-2 border-dashed border-primary/40 px-2 py-1 rounded-lg">{t('landing.hero_desc_accent')}</span>
           </motion.p>
           
           <motion.div 
@@ -108,7 +109,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               onClick={onStart}
               className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl shadow-primary/20 transition-all active:scale-95"
             >
-              Get Started Now
+              {t('landing.get_started')}
               <span className="material-symbols-outlined">arrow_forward</span>
             </button>
           </motion.div>
@@ -128,16 +129,13 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               </div>
             </div>
             <div className="bg-white dark:bg-space-900 aspect-video relative group flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent"></div>
-              <img 
-                alt="Screenshot of a clean modern AI chat interface showing prompt optimization steps" 
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none"></div>
+              <video 
                 className="w-full h-full object-cover opacity-90" 
-                src="https://picsum.photos/seed/graviprompt/1200/800"
-                referrerPolicy="no-referrer"
+                src="/graviprompt-video.mp4"
+                controls
+                poster="https://picsum.photos/seed/graviprompt/1200/800"
               />
-              <button className="absolute z-10 flex items-center justify-center rounded-full w-20 h-20 bg-primary/90 text-white shadow-2xl hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
-              </button>
             </div>
           </motion.div>
         </div>
@@ -147,8 +145,8 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
       <section id="features" className="py-24 bg-slate-50 dark:bg-space-900/50 transition-colors">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-16">
-            <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">Full Professional Power. Zero Cost.</h2>
-            <p className="text-slate-600 dark:text-slate-400 font-medium">Get unrestricted access to our specialized optimization engines.</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">{t('landing.feature_title')}</h2>
+            <p className="text-slate-600 dark:text-slate-400 font-medium">{t('landing.feature_desc')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* UI Design Feature */}
@@ -156,9 +154,9 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                 <span className="material-symbols-outlined text-2xl">palette</span>
               </div>
-              <h3 className="text-xl font-bold mb-3">UI Design</h3>
+              <h3 className="text-xl font-bold mb-3">{t('landing.feature.ui_design')}</h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Generate pixel-perfect design systems, accessible color palettes, and component libraries instantly with layout-aware prompts.
+                {t('landing.feature.ui_design_desc')}
               </p>
             </div>
             {/* Game Dev Feature */}
@@ -166,9 +164,9 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                 <span className="material-symbols-outlined text-2xl">sports_esports</span>
               </div>
-              <h3 className="text-xl font-bold mb-3">Game Dev</h3>
+              <h3 className="text-xl font-bold mb-3">{t('landing.feature.game_dev')}</h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Refine complex game logic, narrative branching, and character behaviors with context-retaining optimization algorithms.
+                {t('landing.feature.game_dev_desc')}
               </p>
             </div>
             {/* Data Science Feature */}
@@ -176,9 +174,9 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                 <span className="material-symbols-outlined text-2xl">database</span>
               </div>
-              <h3 className="text-xl font-bold mb-3">Data Science</h3>
+              <h3 className="text-xl font-bold mb-3">{t('landing.feature.data_science')}</h3>
               <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Architect robust data models and complex algorithmic queries for maximum efficiency and statistical accuracy.
+                {t('landing.feature.data_science_desc')}
               </p>
             </div>
           </div>
@@ -189,12 +187,12 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
       <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <h2 className="text-4xl md:text-5xl font-black mb-8 leading-tight tracking-tight">Enterprise Tools for Everyone.</h2>
+            <h2 className="text-4xl md:text-5xl font-black mb-8 leading-tight tracking-tight">{t('landing.deep_dive_title')}</h2>
             <div className="space-y-6">
               {[
-                { title: 'Unrestricted Access', desc: 'Every feature is available for free. No credit card, no subscriptions, no limits.' },
-                { title: 'One-Click Refining', desc: 'Take a basic idea to a master-level prompt in milliseconds using our proprietary engine.' },
-                { title: 'Team Collaboration', desc: 'Shared prompt libraries for design and engineering teams to stay in sync at zero cost.' }
+                { title: t('landing.deep_dive.access'), desc: t('landing.deep_dive.access_desc') },
+                { title: t('landing.deep_dive.refining'), desc: t('landing.deep_dive.refining_desc') },
+                { title: t('landing.deep_dive.collab'), desc: t('landing.deep_dive.collab_desc') }
               ].map((item, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -211,7 +209,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               onClick={onStart}
               className="mt-10 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90 transition-opacity"
             >
-              Explore All Free Features
+              {t('landing.explore_features')}
             </button>
           </div>
           <div className="relative bg-primary/5 rounded-3xl p-4 md:p-8 border border-primary/10">
@@ -245,13 +243,11 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
             <div className="flex items-center gap-2 mb-6">
-              <div className="bg-primary p-1.5 rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-white text-xl">rocket_launch</span>
-              </div>
+              <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
               <span className="text-xl font-extrabold tracking-tight">GraviPrompt</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">
-              Building the future of human-AI collaboration through precision prompt engineering. Always free, always open.
+              {t('landing.footer_desc')}
             </p>
             <div className="flex gap-4">
               <a className="text-slate-400 hover:text-primary" href="#"><span className="material-symbols-outlined">public</span></a>
@@ -267,25 +263,25 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-12 md:gap-24">
             <div>
-              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">Product</h5>
+              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">{t('landing.footer.product')}</h5>
               <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
-                <li><a className="hover:text-primary" href="#">Features</a></li>
+                <li><a className="hover:text-primary" href="#">{t('landing.features')}</a></li>
                 <li><a className="hover:text-primary" href="#">Integrations</a></li>
-                <li><a className="hover:text-primary" href="#">Enterprise</a></li>
+                <li><a className="hover:text-primary" href="#">{t('landing.enterprise')}</a></li>
                 <li><a className="hover:text-primary" href="#">Changelog</a></li>
               </ul>
             </div>
             <div>
-              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">Resources</h5>
+              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">{t('landing.footer.resources')}</h5>
               <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
-                <li><a className="hover:text-primary" href="#">Documentation</a></li>
+                <li><a className="hover:text-primary" href="#">{t('landing.documentation')}</a></li>
                 <li><a className="hover:text-primary" href="#">Prompt Guide</a></li>
                 <li><a className="hover:text-primary" href="#">API Reference</a></li>
                 <li><a className="hover:text-primary" href="#">Community</a></li>
               </ul>
             </div>
             <div>
-              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">Company</h5>
+              <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">{t('landing.footer.company')}</h5>
               <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
                 <li><a className="hover:text-primary" href="#">About Us</a></li>
                 <li><a className="hover:text-primary" href="#">Careers</a></li>
@@ -296,7 +292,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-slate-200 dark:border-primary/5 text-center text-xs text-slate-400">
-          © 2026 GraviPrompt AI Systems Inc. All rights reserved.
+          {t('landing.footer.rights')}
         </div>
       </footer>
     </div>

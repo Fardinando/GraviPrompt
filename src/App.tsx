@@ -4,6 +4,7 @@ import Auth from './components/Auth';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from './lib/i18n';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -22,27 +23,34 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-space-900 p-4 text-center">
-          <AlertCircle className="text-red-500 mb-4" size={48} />
-          <h1 className="text-2xl font-bold dark:text-white mb-2">Ops! Algo deu errado.</h1>
-          <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">
-            Ocorreu um erro inesperado na aplicação. Tente recarregar a página.
-          </p>
-          <pre className="bg-slate-100 dark:bg-space-800 p-4 rounded-lg text-xs text-left overflow-auto max-w-full dark:text-slate-300 mb-6">
-            {this.state.error?.message}
-          </pre>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
-          >
-            Recarregar Página
-          </button>
-        </div>
+        <ErrorContent error={this.state.error} />
       );
     }
 
     return this.props.children;
   }
+}
+
+function ErrorContent({ error }: { error: Error | null }) {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-space-900 p-4 text-center">
+      <AlertCircle className="text-red-500 mb-4" size={48} />
+      <h1 className="text-2xl font-bold dark:text-white mb-2">{t('error.boundary_title')}</h1>
+      <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">
+        {t('error.boundary_desc')}
+      </p>
+      <pre className="bg-slate-100 dark:bg-space-800 p-4 rounded-lg text-xs text-left overflow-auto max-w-full dark:text-slate-300 mb-6">
+        {error?.message}
+      </pre>
+      <button 
+        onClick={() => window.location.reload()}
+        className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
+      >
+        {t('error.reload_btn')}
+      </button>
+    </div>
+  );
 }
 
 export default function App() {

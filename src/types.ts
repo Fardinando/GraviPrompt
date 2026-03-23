@@ -1,7 +1,9 @@
 export interface UserProfile {
   id: string;
   theme: 'light' | 'dark' | 'system';
+  language: 'pt-BR' | 'en';
   full_name?: string;
+  ai_model?: string;
 }
 
 export interface ChatMessage {
@@ -25,4 +27,9 @@ export interface OptimizedPrompt {
   messages?: ChatMessage[];
 }
 
-export type Category = 'UI Design' | 'Game Dev' | 'Web Sites' | 'Data Science' | 'General' | 'Pesquisa Profunda';
+export type Category = 
+  | 'UI Design' | 'Game Dev' | 'Web Sites' | 'Data Science' 
+  | 'História Longa' | 'Texto Formal' | 'E-mail Profissional' | 'Artigo/Blog'
+  | 'Realista' | 'Artístico' | 'Logo/Ícone' | '3D/Render'
+  | 'General' 
+  | 'Pesquisa Profunda';

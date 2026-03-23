@@ -1,6 +1,6 @@
 # GraviPrompt ✨
 
-> Otimizador de prompts para a **Antigravity** — transforme ideias brutas em prompts poderosos com o auxílio da IA do Google Gemini.
+> Otimizador de prompts para a **IAs** — transforme ideias brutas em prompts poderosos com o auxílio da IA GraviPrompt.
 
 🔗 **Demo ao vivo:** [graviprompt.vercel.app](https://graviprompt.vercel.app)
 🧪 **AI Studio:** [Abrir no AI Studio](https://ai.studio/apps/a3e10a81-bfc4-41c7-8e26-c4b70f362cfd)
@@ -9,7 +9,7 @@
 
 ## 📌 Sobre o projeto
 
-O **GraviPrompt** é uma aplicação web desenvolvida para a **Antigravity** com o objetivo de otimizar e aprimorar prompts de inteligência artificial. Com uma interface limpa e intuitiva, o usuário insere um prompt inicial e recebe uma versão refinada, mais clara e eficiente, gerada pelo modelo **Google Gemini**.
+O **GraviPrompt** é uma aplicação web desenvolvida para **IAs** com o objetivo de otimizar e aprimorar prompts de inteligência artificial. Com uma interface limpa e intuitiva, o usuário insere um prompt inicial e recebe uma versão refinada, mais clara e eficiente, gerada pelo modelo misto do **OpenRouter**.
 
 ---
 
@@ -21,7 +21,7 @@ O **GraviPrompt** é uma aplicação web desenvolvida para a **Antigravity** com
 | Bundler | Vite 6 |
 | Estilização | Tailwind CSS 4 |
 | Animações | Framer Motion |
-| IA | Google Gemini (`@google/genai`) |
+| IA | OpenRouter |
 | Banco de dados | Supabase + better-sqlite3 |
 | Renderização | react-markdown + remark-gfm |
 | Deploy | Vercel |
@@ -102,8 +102,8 @@ GraviPrompt/
 
 ## 📄 Licença
 
-Este projeto foi desenvolvido por Fernando Anderson Almeida Sousa. Todos os direitos reservados.
+Este projeto foi desenvolvido por **Fernando Anderson Almeida Sousa**. Todos os direitos reservados.
 
 ---
 
-<p align="center">Feito com 💜 para <strong>VOcê</strong></p>
+<p align="center">Feito com 💜 para <strong>Você</strong></p>

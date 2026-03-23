@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Rocket, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../lib/i18n';
 
 export default function Auth() {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +32,7 @@ export default function Auth() {
           }
         });
         if (error) throw error;
-        alert('Verifique seu e-mail para confirmar o cadastro!');
+        alert(t('auth.verify_email'));
       }
     } catch (err: any) {
       setError(err.message);
@@ -47,12 +49,10 @@ export default function Auth() {
         className="w-full max-w-md bg-white dark:bg-space-800 backdrop-blur-sm border border-slate-200 dark:border-white/10 p-8 rounded-xl shadow-2xl"
       >
         <div className="flex flex-col items-center gap-2 mb-8 text-center">
-          <div className="size-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-2">
-            <span className="material-symbols-outlined text-3xl">rocket_launch</span>
-          </div>
+          <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-16 h-16 object-contain mb-2" referrerPolicy="no-referrer" />
           <h1 className="text-3xl font-black tracking-tight dark:text-white">GraviPrompt</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            {isLogin ? 'Bem-vindo de volta à fronteira espacial' : 'Comece a criar prompts incríveis hoje'}
+            {isLogin ? t('auth.welcome_back') : t('auth.start_creating')}
           </p>
         </div>
 
@@ -65,7 +65,7 @@ export default function Auth() {
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Nome Completo</label>
+              <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">{t('auth.full_name')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                   <span className="material-symbols-outlined text-[18px]">person</span>
@@ -76,14 +76,14 @@ export default function Auth() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-space-900/50 border border-slate-200 dark:border-white/10 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
-                  placeholder="Como devemos te chamar?"
+                  placeholder={t('auth.full_name_placeholder')}
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">E-mail</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">{t('auth.email')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 <span className="material-symbols-outlined text-[18px]">mail</span>
@@ -94,13 +94,13 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-space-900/50 border border-slate-200 dark:border-white/10 rounded-lg py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
-                placeholder="seu@email.com"
+                placeholder={t('auth.email_placeholder')}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Senha</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">{t('auth.password')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -129,17 +129,17 @@ export default function Auth() {
             disabled={loading}
             className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Entrar' : 'Criar conta')}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? t('auth.login_btn') : t('auth.signup_btn'))}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
-          {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+          {isLogin ? t('auth.no_account') : t('auth.has_account')}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="text-primary font-bold hover:underline ml-1"
           >
-            {isLogin ? 'Criar conta' : 'Fazer login'}
+            {isLogin ? t('auth.signup_link') : t('auth.login_link')}
           </button>
         </p>
       </motion.div>

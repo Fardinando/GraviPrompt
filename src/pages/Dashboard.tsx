@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabase';
 import Sidebar from '../components/Sidebar';
 import Chat from '../components/Chat';
 import SettingsModal from '../components/SettingsModal';
+import TutorialModal from '../components/TutorialModal';
 import { OptimizedPrompt, UserProfile } from '../types';
 import { promptService } from '../services/promptService';
+import { useTranslation } from '../lib/i18n';
 
 interface DashboardProps {
   user: any;
@@ -17,9 +19,18 @@ export default function Dashboard({ user }: DashboardProps) {
   const [activePrompt, setActivePrompt] = useState<OptimizedPrompt | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  const { t } = useTranslation(profile?.language || 'pt-BR');
 
   useEffect(() => {
     fetchData();
+    
+    // Check if tutorial should be shown
+    const tutorialSeen = localStorage.getItem('graviprompt-tutorial-seen');
+    if (!tutorialSeen) {
+      setTutorialOpen(true);
+    }
   }, [user.id]);
 
   useEffect(() => {
@@ -220,30 +231,96 @@ export default function Dashboard({ user }: DashboardProps) {
     if (!prompt) return;
 
     try {
-      const { GoogleGenAI } = await import('@google/genai');
-      // Check for both standard and VITE_ prefixed environment variables
-      const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Gemini API Key não encontrada.');
+      const response = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messages: [
+            { 
+              role: "system", 
+              content: t('dashboard.ai_rename_system')
+            },
+            { 
+              role: "user", 
+              content: `${t('dashboard.ai_rename_user')} "${prompt.original_prompt.substring(0, 200)}"`
+            }
+          ],
+          model: profile?.ai_model || "google/gemini-2.0-flash-lite-preview-02-05:free"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao chamar a API de renomeação.');
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Gere um título curto e criativo (máximo 4 palavras) para esta conversa que começa com: "${prompt.original_prompt.substring(0, 200)}"`,
-      });
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
       
-      const newTitle = response.text?.trim()
-        .replace(/^["']|["']$/g, '')
-        .replace(/\*\*/g, '')
-        .replace(/\*/g, '') || 'Conversa Otimizada';
-      if (newTitle) {
-        await handleRenamePrompt(id, newTitle);
+      // Robust JSON extraction
+      let jsonStr = content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+      } else {
+        jsonStr = content.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+      }
+
+      try {
+        const result = JSON.parse(jsonStr);
+        const newTitle = (result.title || '').trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '') || t('dashboard.ai_rename_fallback');
+          
+        if (newTitle) {
+          await handleRenamePrompt(id, newTitle);
+        }
+      } catch (parseError) {
+        console.error('Erro ao parsear JSON de renomeação:', content);
+        // Fallback: use the content directly as title if it's short
+        const fallbackTitle = content.substring(0, 25).trim();
+        await handleRenamePrompt(id, fallbackTitle);
       }
     } catch (e) {
       console.error('Erro ao renomear com IA:', e);
-      throw e; // Re-throw to be caught by the sidebar UI
+      throw e;
+    }
+  };
+
+  const handleCloseTutorial = () => {
+    setTutorialOpen(false);
+    localStorage.setItem('graviprompt-tutorial-seen', 'true');
+  };
+
+  const handleShowTutorial = () => {
+    setTutorialOpen(true);
+    setSettingsOpen(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmMsg = t('dashboard.delete_account_confirm');
+    
+    if (confirm(confirmMsg)) {
+      try {
+        // 1. Clear history
+        await handleClearHistory();
+        
+        // 2. Delete profile
+        await supabase.from('profiles').delete().eq('id', user.id);
+        
+        // 3. Sign out
+        await supabase.auth.signOut();
+        
+        // 4. Clear local storage
+        localStorage.clear();
+        
+        alert(t('dashboard.delete_account_success'));
+      } catch (error) {
+        console.error('Erro ao excluir conta:', error);
+        alert(t('dashboard.delete_account_error'));
+      }
     }
   };
 
@@ -251,9 +328,9 @@ export default function Dashboard({ user }: DashboardProps) {
     <div className="flex h-screen bg-white dark:bg-space-900 transition-colors overflow-hidden">
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-space-900 border-b border-slate-200 dark:border-white/10 z-40 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2 text-primary">
-          <span className="material-symbols-outlined text-[24px]">rocket_launch</span>
-          <span className="font-black tracking-tight">GraviPrompt</span>
+        <div className="flex items-center gap-2">
+          <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+          <span className="font-black tracking-tight dark:text-white">GraviPrompt</span>
         </div>
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -279,12 +356,14 @@ export default function Dashboard({ user }: DashboardProps) {
         onAIRename={handleAIRename}
         onOpenSettings={() => setSettingsOpen(true)}
         activeId={activePrompt?.id}
+        language={profile?.language || 'pt-BR'}
       />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col pt-14 md:pt-0 relative overflow-hidden">
         <Chat 
           user={user} 
+          profile={profile}
           activePrompt={activePrompt} 
           onSave={handleSavePrompt} 
         />
@@ -298,6 +377,15 @@ export default function Dashboard({ user }: DashboardProps) {
         profile={profile}
         onProfileUpdate={setProfile}
         onClearHistory={handleClearHistory}
+        onShowTutorial={handleShowTutorial}
+        onDeleteAccount={handleDeleteAccount}
+      />
+
+      {/* Tutorial Modal */}
+      <TutorialModal 
+        isOpen={tutorialOpen}
+        onClose={handleCloseTutorial}
+        language={profile?.language || 'pt-BR'}
       />
     </div>
   );
