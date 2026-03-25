@@ -102,7 +102,7 @@ export default function Sidebar({
           </div>
 
           {/* Chat History */}
-          <div id="sidebar-history" className="flex-1 overflow-y-auto px-2 space-y-1">
+          <div id="sidebar-history" className="flex-1 overflow-y-auto px-2 space-y-1 pb-20 relative z-10">
             {isOpen && (
               <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                 <span className="material-symbols-outlined text-[14px]">history</span>
@@ -117,7 +117,7 @@ export default function Sidebar({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="group relative"
+                  className={`group relative ${menuOpenId === item.id ? 'z-20' : 'z-0'}`}
                 >
                   {renamingId === item.id && isOpen ? (
                     <div className="px-3 py-2 flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function Sidebar({
               <div className="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-300 font-mono text-[12px] font-bold tracking-widest uppercase [writing-mode:vertical-rl] rotate-180">
                 <span>{formattedTime}</span>
                 <div className="w-px h-12 bg-primary/30 my-2" />
-                <img src="/graviprompt-logo.png" alt="Logo" className="w-6 h-6 object-contain rotate-180" referrerPolicy="no-referrer" />
+                <img src="/logo.svg" alt="Logo" className="w-6 h-6 object-contain rotate-180" referrerPolicy="no-referrer" />
               </div>
             </div>
           )}

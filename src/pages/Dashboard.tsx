@@ -329,7 +329,7 @@ export default function Dashboard({ user }: DashboardProps) {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-space-900 border-b border-slate-200 dark:border-white/10 z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+          <img src="/logo.svg" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
           <span className="font-black tracking-tight dark:text-white">GraviPrompt</span>
         </div>
         <button 

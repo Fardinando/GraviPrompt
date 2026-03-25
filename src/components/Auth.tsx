@@ -49,7 +49,7 @@ export default function Auth() {
         className="w-full max-w-md bg-white dark:bg-space-800 backdrop-blur-sm border border-slate-200 dark:border-white/10 p-8 rounded-xl shadow-2xl"
       >
         <div className="flex flex-col items-center gap-2 mb-8 text-center">
-          <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-16 h-16 object-contain mb-2" referrerPolicy="no-referrer" />
+          <img src="/logo.svg" alt="GraviPrompt Logo" className="w-16 h-16 object-contain mb-2" referrerPolicy="no-referrer" />
           <h1 className="text-3xl font-black tracking-tight dark:text-white">GraviPrompt</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
             {isLogin ? t('auth.welcome_back') : t('auth.start_creating')}

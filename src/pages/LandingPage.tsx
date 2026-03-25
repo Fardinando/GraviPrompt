@@ -36,7 +36,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-background-dark/70 backdrop-blur-xl border-b border-primary/10 transition-colors">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+            <img src="/logo.svg" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">GraviPrompt</span>
           </div>
           <div className="hidden md:flex items-center gap-10">
@@ -243,7 +243,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
             <div className="flex items-center gap-2 mb-6">
-              <img src="/graviprompt-logo.png" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+              <img src="/logo.svg" alt="GraviPrompt Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
               <span className="text-xl font-extrabold tracking-tight">GraviPrompt</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">
