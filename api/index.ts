@@ -80,8 +80,8 @@ async function startServer() {
     });
   }
 
-  // Only listen if not on Vercel (Vercel handles the listen part)
-  if (process.env.NODE_ENV !== "production" || process.env.PORT || process.env.K_SERVICE) {
+  // Only listen if not on Vercel or explicitly requested
+  if (process.env.NODE_ENV !== "production" || (process.env.PORT && !process.env.VERCEL) || process.env.K_SERVICE) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
