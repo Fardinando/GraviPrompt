@@ -237,7 +237,7 @@ export default function SettingsModal({
               <div className="mb-4 p-3 bg-red-500/5 border border-red-500/10 rounded-lg">
                 <p className="text-xs text-red-500 leading-relaxed">
                   <strong>Atenção:</strong> A chave do OpenRouter não foi encontrada. 
-                  Vá nas configurações do AI Studio e adicione a variável <code>OPENROUTER_API_KEY</code>.
+                  Adicione a variável <code>OPENROUTER_API_KEY</code> nas configurações do seu ambiente (AI Studio ou Vercel).
                 </p>
               </div>
             )}
