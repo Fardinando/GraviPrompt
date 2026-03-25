@@ -1,8 +1,6 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { OpenRouter } from "@openrouter/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +26,6 @@ app.post("/api/ai/generate", async (req, res) => {
   }
 
   const { messages } = req.body;
-  // Force openrouter/free as requested
   const model = "openrouter/free";
 
   try {
@@ -64,24 +61,17 @@ app.post("/api/ai/generate", async (req, res) => {
   }
 });
 
+// Logic for local development vs production
 async function startServer() {
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+    // Dynamic import to avoid bundling Vite in production
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
 
-  // Only listen if not on Vercel or explicitly requested
-  if (process.env.NODE_ENV !== "production" || (process.env.PORT && !process.env.VERCEL) || process.env.K_SERVICE) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
