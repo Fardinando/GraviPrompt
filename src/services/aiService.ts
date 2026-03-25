@@ -1,7 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
 import { ChatMessage } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function optimizePrompt(
   originalPrompt: string, 
@@ -14,7 +11,7 @@ export async function optimizePrompt(
     sources: number;
     showSources: boolean;
   },
-  model: string = "gemini-3-flash-preview"
+  model: string = "openrouter/free"
 ) {
   const isAntigravity = target === 'Antigravity';
   const isProblemSolving = target === 'Solução de Problemas';
@@ -155,41 +152,50 @@ ESTRUTURA ADICIONAL (OBRIGATÓRIA PARA ANTIGRAVITY):
   "title": "O título da conversa"
 }`;
 
-  const contents = [
+  const messages = [
+    { role: 'system', content: systemInstruction },
     ...history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: Array.isArray(msg.content) ? msg.content[msg.currentVersion || 0] : msg.content }]
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: Array.isArray(msg.content) ? msg.content[msg.currentVersion || 0] : msg.content
     }))
   ];
 
-  contents.push({
+  messages.push({
     role: 'user',
-    parts: [{ text: isResearchMode 
+    content: isResearchMode 
       ? `Realize uma pesquisa profunda sobre o tópico: ${originalPrompt}`
       : isProblemSolving 
       ? `Resolva este problema ou continue a conversa: ${originalPrompt}` 
       : `Otimize este prompt ou refine a otimização anterior para ${target} na categoria ${category}: ${originalPrompt}`
-    }]
   });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: contents as any,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        tools: isAntigravity ? [{ googleSearch: {} }] : undefined
-      }
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messages
+      })
     });
 
-    const content = response.text || "";
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro na chamada ao servidor de IA');
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content || "";
+    
+    // Limpar possíveis blocos de código markdown que a IA possa retornar
+    const cleanContent = content.replace(/```json\n?/, '').replace(/```\n?$/, '').trim();
     
     try {
-      const result = JSON.parse(content);
+      const result = JSON.parse(cleanContent);
       return result as { optimizedPrompt: string; title: string; skillsMarkdown?: string };
     } catch (parseError) {
-      console.error("Erro ao parsear JSON da IA:", content);
+      console.error("Erro ao parsear JSON da IA:", cleanContent);
       return {
         optimizedPrompt: content,
         title: "Nova Conversa",
@@ -197,7 +203,7 @@ ESTRUTURA ADICIONAL (OBRIGATÓRIA PARA ANTIGRAVITY):
       };
     }
   } catch (error: any) {
-    console.error("Erro GraviPrompt (Gemini):", error);
+    console.error("Erro GraviPrompt (OpenRouter):", error);
     throw error;
   }
 }
