@@ -41,6 +41,13 @@ export default function SettingsModal({
   const checkApiKey = async () => {
     try {
       const response = await fetch('/api/ai/config');
+      if (!response.ok) {
+        throw new Error(`Erro na resposta: ${response.status} ${response.statusText}`);
+      }
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('A resposta do servidor não é um JSON válido. Verifique se o backend está rodando.');
+      }
       const data = await response.json();
       setApiKeyStatus({ hasApiKey: data.hasApiKey, loading: false });
     } catch (error) {
