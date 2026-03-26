@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, getActiveAuthClient } from '../lib/supabase';
 import Sidebar from '../components/Sidebar';
 import Chat from '../components/Chat';
 import SettingsModal from '../components/SettingsModal';
@@ -67,8 +67,10 @@ export default function Dashboard({ user }: DashboardProps) {
     }
 
     try {
+      const client = supabase;
+      
       // 3. Fetch Profile
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await client
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -81,7 +83,7 @@ export default function Dashboard({ user }: DashboardProps) {
       } else if (profileError?.code === 'PGRST116') {
         const newProfile = { id: user.id, theme: localTheme || 'system' };
         try {
-          await supabase.from('profiles').insert(newProfile);
+          await client.from('profiles').insert(newProfile);
           setProfile(newProfile as UserProfile);
         } catch (e) {
           setProfile(newProfile as UserProfile);
@@ -304,19 +306,24 @@ export default function Dashboard({ user }: DashboardProps) {
     
     if (confirm(confirmMsg)) {
       try {
+        const client = supabase;
+        const authClient = getActiveAuthClient();
+        
         // 1. Clear history
         await handleClearHistory();
         
         // 2. Delete profile
-        await supabase.from('profiles').delete().eq('id', user.id);
+        await client.from('profiles').delete().eq('id', user.id);
         
         // 3. Sign out
-        await supabase.auth.signOut();
+        localStorage.removeItem('gp-custom-session');
+        await authClient.auth.signOut();
         
         // 4. Clear local storage
         localStorage.clear();
         
         alert(t('dashboard.delete_account_success'));
+        window.location.reload();
       } catch (error) {
         console.error('Erro ao excluir conta:', error);
         alert(t('dashboard.delete_account_error'));

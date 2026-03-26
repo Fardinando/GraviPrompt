@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase, supabaseCC, getActiveAuthClient } from './lib/supabase';
 import Auth from './components/Auth';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
@@ -62,12 +62,34 @@ export default function App() {
     // Initial session check
     const initSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const authProvider = localStorage.getItem('gp-auth-provider');
+        
+        // Verificar sessão customizada primeiro se for CodingCourse
+        if (authProvider === 'codingcourse') {
+          const customSession = localStorage.getItem('gp-custom-session');
+          if (customSession) {
+            try {
+              const parsed = JSON.parse(customSession);
+              if (parsed.expires_at > Math.floor(Date.now() / 1000)) {
+                setSession(parsed);
+                setLoading(false);
+                return;
+              } else {
+                localStorage.removeItem('gp-custom-session');
+              }
+            } catch (e) {
+              localStorage.removeItem('gp-custom-session');
+            }
+          }
+        }
+
+        const authClient = getActiveAuthClient();
+        const { data: { session }, error } = await authClient.auth.getSession();
         if (error) {
           console.warn('Erro ao recuperar sessão:', error.message);
           // Se o erro for relacionado a token inválido, limpamos a sessão local
           if (error.message.includes('refresh_token') || error.message.includes('Refresh Token')) {
-            await supabase.auth.signOut();
+            await authClient.auth.signOut();
             setSession(null);
           }
         } else {
@@ -83,11 +105,31 @@ export default function App() {
     initSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const authClient = getActiveAuthClient();
+    const { data: { subscription } } = authClient.auth.onAuthStateChange((event, supabaseSession) => {
       console.log('Auth Event:', event);
-      setSession(session);
+      
+      const authProvider = localStorage.getItem('gp-auth-provider');
+      const customSession = localStorage.getItem('gp-custom-session');
+
+      // Se for CodingCourse e tivermos uma sessão customizada válida, IGNORAR eventos do Supabase
+      // Isso evita que o Supabase limpe nossa sessão customizada
+      if (authProvider === 'codingcourse' && customSession) {
+        try {
+          const parsed = JSON.parse(customSession);
+          if (parsed.expires_at > Math.floor(Date.now() / 1000)) {
+            console.log('Mantendo sessão customizada do CodingCourse');
+            return; 
+          }
+        } catch (e) {
+          // Se der erro no parse, deixa seguir para limpar
+        }
+      }
+
+      setSession(supabaseSession);
       if (event === 'SIGNED_OUT') {
         setSession(null);
+        localStorage.removeItem('gp-custom-session');
       }
     });
 
@@ -95,7 +137,8 @@ export default function App() {
     const handleUnhandledRejection = (e: PromiseRejectionEvent) => {
       if (e.reason?.message?.includes('Refresh Token') || e.reason?.message?.includes('refresh_token')) {
         console.warn('Background refresh token error caught:', e.reason.message);
-        supabase.auth.signOut().then(() => {
+        const client = getActiveAuthClient();
+        client.auth.signOut().then(() => {
           setSession(null);
           window.location.reload(); // Force reload to clear any stuck state
         });

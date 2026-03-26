@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseCC, getActiveAuthClient } from '../lib/supabase';
 import { UserProfile } from '../types';
 import { useTranslation, TranslationKey } from '../lib/i18n';
 
@@ -110,7 +110,13 @@ export default function SettingsModal({
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const authClient = getActiveAuthClient();
+    localStorage.removeItem('gp-custom-session');
+    await Promise.all([
+      supabase.auth.signOut(),
+      supabaseCC.auth.signOut()
+    ]);
+    window.location.reload();
   };
 
   if (!isOpen) return null;

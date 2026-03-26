@@ -39,7 +39,7 @@ ESTRUTURA DA RESPOSTA:
 1. 📊 Sumário Executivo: Um resumo rápido do que foi encontrado.
 2. 🔍 Descobertas Detalhadas: O corpo principal da pesquisa, organizado por subtópicos.
 3. 💡 Insights & Conclusões: O que essas informações significam na prática.
-4. 📚 Fontes Utilizadas: ${researchParams?.showSources ? 'Liste os links das fontes encontradas.' : 'Não liste os links, apenas mencione a qualidade das fontes.'}
+4. 📚 Fontes Utilizadas: ${researchParams?.showSources ? 'Liste os links das fontes encontradas (apenas links reais e verificados). Se não tiver certeza da URL exata, mencione o nome do site ou fonte sem criar um link quebrado.' : 'Não liste os links, apenas mencione a qualidade das fontes.'}
 
 Se o nível for "Challenger Deep", seja extremamente técnico, detalhado e use o máximo de dados possível.
 
@@ -134,14 +134,14 @@ Crie um título curto (máx 25 caracteres), impactante e sem aspas para esta con
       systemInstruction += `
 🔥 MODO ESPECIAL: ANTIGRAVITY SKILLS & GITHUB SEARCH
 Como o alvo é "Antigravity", você deve:
-1. Pesquisar no GitHub por "Antigravity Skills" ou repositórios relacionados a "Antigravity AI".
-2. Identificar as melhores Skills para o contexto do usuário.
-3. Ensinar o usuário como instalar essas Skills no ambiente Antigravity (passo a passo).
-4. CITAR as Skills encontradas DIRETAMENTE no texto do "Prompt Otimizado" (ex: "Usando a skill [Nome da Skill]...").
-5. Fornecer hiperlinks diretos para os repositórios das Skills no GitHub na seção de Skills.
+1. Identificar as melhores Skills para o contexto do usuário.
+2. Ensinar o usuário como instalar essas Skills no ambiente Antigravity (passo a passo).
+3. CITAR as Skills encontradas DIRETAMENTE no texto do "Prompt Otimizado" (ex: "Usando a skill [Nome da Skill]...").
+4. IMPORTANTE: NÃO invente links do GitHub. Forneça apenas links se você tiver ABSOLUTA CERTEZA de que o repositório existe (ex: repositórios oficiais da Antigravity). Caso contrário, forneça apenas o nome da Skill e instrua o usuário a procurar no marketplace oficial ou no repositório da comunidade.
+5. Se fornecer links, use o formato: [Nome da Skill](https://github.com/antigravity-ai/[nome-do-repo]) apenas se souber que é um repo oficial.
 
 ESTRUTURA ADICIONAL (OBRIGATÓRIA PARA ANTIGRAVITY):
-- 🛠️ Antigravity Skills & Integração: Seção detalhada com as skills, links e guia de instalação.`;
+- 🛠️ Antigravity Skills & Integração: Seção detalhada com as skills e guia de instalação.`;
     }
   }
 
