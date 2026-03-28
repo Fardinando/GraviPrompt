@@ -25,8 +25,11 @@ app.post("/api/ai/generate", async (req, res) => {
     return res.status(500).json({ error: "OPENROUTER_API_KEY não configurada no servidor." });
   }
 
-  const { messages } = req.body;
-  const model = "openrouter/free";
+  const { messages, model: requestedModel } = req.body;
+  const model = requestedModel || "openrouter/free";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -41,8 +44,11 @@ app.post("/api/ai/generate", async (req, res) => {
         model,
         messages,
         stream: false
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -53,6 +59,11 @@ app.post("/api/ai/generate", async (req, res) => {
 
     res.json(data);
   } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error("AI response timed out");
+      return res.status(504).json({ error: "AI response timed out" });
+    }
     console.error("Erro na chamada ao OpenRouter:", error);
     res.status(500).json({ 
       error: "Erro ao processar a requisição na IA.",

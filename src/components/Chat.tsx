@@ -101,6 +101,17 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
   const [showSources, setShowSources] = useState(true);
   const [isResearchMinimized, setIsResearchMinimized] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  useEffect(() => {
+    if (textareaRef.current && category !== 'Pesquisa Profunda') {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const lineHeight = 24;
+      const maxHeight = lineHeight * 6;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+    }
+  }, [input, category]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -241,10 +252,13 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
         target, 
         currentHistory,
         researchParams,
-        profile?.ai_model
+        profile?.ai_model,
+        abortControllerRef.current?.signal
       );
       
       if (abortControllerRef.current?.signal.aborted) return;
+
+      setLoading(false);
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -299,6 +313,7 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
         }
       }
     } catch (err: any) {
+      setLoading(false);
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
       
@@ -312,7 +327,6 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
       setMessages(currentHistory);
       setInput(userMessage.content as string);
     } finally {
-      setLoading(false);
       abortControllerRef.current = null;
     }
   };
@@ -341,10 +355,14 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
         category, 
         target, 
         historyBefore,
-        researchParams
+        researchParams,
+        profile?.ai_model,
+        abortControllerRef.current?.signal
       );
       
       if (abortControllerRef.current?.signal.aborted) return;
+
+      setLoading(false);
 
       const updatedMessages = [...messages];
       const assistantMsg = { ...updatedMessages[index] };
@@ -383,6 +401,7 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
         }
       }
     } catch (err: any) {
+      setLoading(false);
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
       
@@ -393,7 +412,6 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
       
       alert(errorMessage);
     } finally {
-      setLoading(false);
       abortControllerRef.current = null;
     }
   };
@@ -885,21 +903,34 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
                   )}
                 </AnimatePresence>
               ) : (
-                <textarea
-                  id="chat-input"
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleOptimize();
-                    }
-                  }}
-                  placeholder={t('chat.placeholder')}
-                  className="w-full bg-transparent border-none focus:ring-0 text-slate-800 dark:text-slate-100 p-4 pr-16 resize-none block min-h-[60px] max-h-[200px]"
-                  rows={1}
-                />
+                <div className="relative flex-1 flex items-end">
+                  <textarea
+                    id="chat-input"
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleOptimize();
+                      }
+                    }}
+                    placeholder={t('chat.placeholder')}
+                    className="w-full bg-transparent border-none focus:ring-0 text-slate-800 dark:text-slate-100 p-4 pr-24 resize-none block min-h-[56px] overflow-y-auto"
+                    rows={1}
+                  />
+                  <div className="absolute right-12 bottom-2 flex items-center gap-1">
+                    <button
+                      onClick={() => setIsZoomed(!isZoomed)}
+                      className={`p-2 rounded-lg transition-colors ${isZoomed ? 'text-primary bg-primary/10' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                      title={isZoomed ? "Reduzir" : "Zoom-in"}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {isZoomed ? 'zoom_in_map' : 'zoom_out_map'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
               )}
               
               {category === 'Pesquisa Profunda' && isResearchMinimized && (
@@ -946,12 +977,68 @@ export default function Chat({ user, profile, activePrompt, onSave }: ChatProps)
             </div>
           </div>
           <p className="text-[10px] text-center text-slate-400 dark:text-slate-500">
-            {profile?.language === 'en' 
-              ? 'GraviPrompt can generate inaccuracies. Always review outputs.' 
-              : 'GraviPrompt pode gerar imprecisões. Revise sempre as saídas.'}
+            GraviPrompt pode gerar imprecisões. Revise sempre as saídas.
           </p>
         </div>
       </div>
+
+      {/* Zoomed Input Overlay */}
+      <AnimatePresence>
+        {isZoomed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] bg-white dark:bg-[#221610] p-6 flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">edit_note</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editor de Prompt</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Escreva seu prompt com foco total</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsZoomed(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors text-slate-600 dark:text-white"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <textarea
+              autoFocus
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={t('chat.placeholder')}
+              className="flex-1 w-full bg-slate-50 dark:bg-space-800 border border-slate-200 dark:border-white/10 rounded-2xl p-6 text-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 resize-none outline-none"
+            />
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setIsZoomed(false)}
+                className="px-6 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+              >
+                Voltar ao Chat
+              </button>
+              <button
+                onClick={() => {
+                  handleOptimize();
+                  setIsZoomed(false);
+                }}
+                disabled={!input.trim() || loading}
+                className="px-8 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="material-symbols-outlined">send</span>}
+                Otimizar Agora
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

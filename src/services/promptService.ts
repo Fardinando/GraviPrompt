@@ -6,47 +6,58 @@ export const promptService = {
     const client = supabase;
     const { id, ...data } = prompt;
     
-    // Remote IDs (Supabase UUIDs) ALWAYS include hyphens.
-    // If we have an ID and it looks like a remote one, we update.
-    if (id && id.includes('-')) { 
-      const { data: updatedData, error } = await client
-        .from('prompts')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error && (error.code === 'PGRST204' || error.message?.includes('messages'))) {
-        console.warn('Coluna "messages" não encontrada no update, tentando sem ela.');
-        const { messages, ...dataWithoutMessages } = data;
-        return await client
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database timeout')), 10000)
+    );
+
+    const performSave = async () => {
+      // Remote IDs (Supabase UUIDs) ALWAYS include hyphens.
+      // If we have an ID and it looks like a remote one, we update.
+      if (id && id.includes('-')) { 
+        const { data: updatedData, error } = await client
           .from('prompts')
-          .update(dataWithoutMessages)
+          .update(data)
           .eq('id', id)
           .select()
-          .single();
-      }
-      
-      return { data: updatedData, error };
-    } else {
-      // New prompt or local-only prompt, try to insert
-      const { data: insertedData, error } = await client
-        .from('prompts')
-        .insert(data)
-        .select()
-        .single();
-      
-      if (error && (error.code === 'PGRST204' || error.message?.includes('messages'))) {
-        console.warn('Coluna "messages" não encontrada no insert, tentando sem ela.');
-        const { messages, ...dataWithoutMessages } = data;
-        return await client
+          .maybeSingle();
+        
+        if (error && (error.code === 'PGRST204' || error.message?.includes('messages'))) {
+          const { messages, ...dataWithoutMessages } = data;
+          return await client
+            .from('prompts')
+            .update(dataWithoutMessages)
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+        }
+        
+        return { data: updatedData, error };
+      } else {
+        // New prompt or local-only prompt, try to insert
+        const { data: insertedData, error } = await client
           .from('prompts')
-          .insert(dataWithoutMessages)
+          .insert(data)
           .select()
-          .single();
+          .maybeSingle();
+        
+        if (error && (error.code === 'PGRST204' || error.message?.includes('messages'))) {
+          const { messages, ...dataWithoutMessages } = data;
+          return await client
+            .from('prompts')
+            .insert(dataWithoutMessages)
+            .select()
+            .maybeSingle();
+        }
+        
+        return { data: insertedData, error };
       }
-      
-      return { data: insertedData, error };
+    };
+
+    try {
+      return await Promise.race([performSave(), timeoutPromise]) as any;
+    } catch (err: any) {
+      console.error('Save prompt error:', err);
+      return { data: null, error: err };
     }
   },
 
@@ -68,11 +79,24 @@ export const promptService = {
 
   async fetchHistory(userId: string): Promise<{ data: OptimizedPrompt[] | null; error: any }> {
     const client = supabase;
-    return await client
-      .from('prompts')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database timeout')), 10000)
+    );
+
+    const performFetch = async () => {
+      return await client
+        .from('prompts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+    };
+
+    try {
+      return await Promise.race([performFetch(), timeoutPromise]) as any;
+    } catch (err: any) {
+      console.error('Fetch history error:', err);
+      return { data: null, error: err };
+    }
   },
 
   async renamePrompt(id: string, title: string): Promise<{ data: OptimizedPrompt | null; error: any }> {

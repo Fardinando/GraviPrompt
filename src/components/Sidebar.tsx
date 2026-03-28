@@ -36,9 +36,33 @@ export default function Sidebar({
   const [aiRenamingId, setAiRenamingId] = React.useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
   const [time, setTime] = React.useState(new Date());
+  const [batteryLevel, setBatteryLevel] = React.useState<number | null>(null);
+  const [isCharging, setIsCharging] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
+    
+    // Battery API
+    const updateBattery = async () => {
+      try {
+        if ('getBattery' in navigator) {
+          const battery: any = await (navigator as any).getBattery();
+          setBatteryLevel(Math.round(battery.level * 100));
+          setIsCharging(battery.charging);
+          
+          battery.addEventListener('levelchange', () => {
+            setBatteryLevel(Math.round(battery.level * 100));
+          });
+          battery.addEventListener('chargingchange', () => {
+            setIsCharging(battery.charging);
+          });
+        }
+      } catch (e) {
+        console.warn('Battery API not supported');
+      }
+    };
+    updateBattery();
+
     return () => clearInterval(timer);
   }, []);
 
@@ -59,9 +83,10 @@ export default function Sidebar({
     };
   }, [menuOpenId]);
 
-  const formattedTime = time.toLocaleTimeString(currentLang, { 
+  const formattedTime = time.toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
-    minute: '2-digit' 
+    minute: '2-digit',
+    hour12: false
   });
 
   return (
@@ -246,17 +271,35 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* Vertical Clock (Only when retracted) */}
+          {/* Vertical Clock and Battery (Only when retracted) */}
           {!isOpen && (
-            <div className="flex-1 flex flex-col items-center justify-center py-4 gap-4">
-              {/* Small divider between history and clock */}
-              <div className="w-8 h-px bg-slate-200 dark:bg-white/10" />
-              
-              <div className="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-300 font-mono text-[12px] font-bold tracking-widest uppercase [writing-mode:vertical-rl] rotate-180">
-                <span>{formattedTime}</span>
-                <div className="w-px h-12 bg-primary/30 my-2" />
-                <img src="/logo.svg" alt="Logo" className="w-6 h-6 object-contain rotate-180" referrerPolicy="no-referrer" />
+            <div className="flex-none flex flex-col items-center py-8 gap-6 overflow-hidden">
+              {/* Vertical Digit Clock */}
+              <div className="flex flex-col items-center font-mono text-[20px] font-black leading-[1.1] text-slate-700 dark:text-slate-200">
+                {formattedTime.split('').map((char, i) => (
+                  <span key={i} className={char === ':' ? 'text-primary h-4 flex items-center' : ''}>
+                    {char === ':' ? '¨' : char}
+                  </span>
+                ))}
               </div>
+
+              {/* Divider Line */}
+              <div className="w-px h-20 bg-slate-200 dark:bg-white/10" />
+              
+              {/* Battery Indicator */}
+              {batteryLevel !== null && (
+                <div className="flex items-center gap-1">
+                  <div className="flex flex-col items-center gap-0.5 text-slate-500 dark:text-slate-400">
+                    <span className="material-symbols-outlined text-[20px]">
+                      {isCharging ? 'battery_charging_full' : (batteryLevel < 25 ? 'battery_alert' : 'battery_full')}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold">{batteryLevel}%</span>
+                  </div>
+                  {!isCharging && batteryLevel < 25 && (
+                    <span className="material-symbols-outlined text-[18px] text-primary animate-pulse">power</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

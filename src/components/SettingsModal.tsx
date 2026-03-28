@@ -91,11 +91,18 @@ export default function SettingsModal({
     setAiModel(newModel);
     
     // Update profile in Supabase
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, ai_model: newModel });
-      
-    if (!error && profile) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, ai_model: newModel });
+        
+      if (!error && profile) {
+        onProfileUpdate({ ...profile, ai_model: newModel });
+      } else if (error && error.message?.includes('ai_model')) {
+        // Fallback if column doesn't exist
+        onProfileUpdate({ ...profile, ai_model: newModel });
+      }
+    } catch (e) {
       onProfileUpdate({ ...profile, ai_model: newModel });
     }
   };
@@ -189,35 +196,6 @@ export default function SettingsModal({
                     {t.icon}
                   </span>
                   <p className="font-bold text-slate-900 dark:text-white">{t.label}</p>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Language Selection */}
-          <section>
-            <div className="flex items-center gap-3 mb-4 text-primary">
-              <span className="material-symbols-outlined">language</span>
-              <h3 className="font-bold uppercase text-sm tracking-widest">{t('settings.language')}</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { id: 'pt-BR', label: t('settings.lang.pt'), icon: 'flag' },
-                { id: 'en', label: t('settings.lang.en'), icon: 'flag' }
-              ].map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => updateLanguage(l.id as any)}
-                  className={`p-4 border rounded-lg text-left transition-all flex items-center gap-3 ${
-                    language === l.id 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-slate-200 dark:border-white/10 hover:border-primary/50'
-                  }`}
-                >
-                  <span className={`material-symbols-outlined text-[24px] ${language === l.id ? 'text-primary' : 'text-slate-400'}`}>
-                    {l.icon}
-                  </span>
-                  <p className="font-bold text-slate-900 dark:text-white">{l.label}</p>
                 </button>
               ))}
             </div>

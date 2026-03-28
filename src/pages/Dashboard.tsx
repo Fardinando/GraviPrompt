@@ -74,19 +74,33 @@ export default function Dashboard({ user }: DashboardProps) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Usar maybeSingle em vez de single para evitar erro 406/PGRST116
       
       if (profileData) {
         setProfile(profileData);
         applyTheme(profileData.theme);
         localStorage.setItem('graviprompt-theme', profileData.theme);
-      } else if (profileError?.code === 'PGRST116') {
-        const newProfile = { id: user.id, theme: localTheme || 'system' };
-        try {
-          await client.from('profiles').insert(newProfile);
-          setProfile(newProfile as UserProfile);
-        } catch (e) {
-          setProfile(newProfile as UserProfile);
+      } else {
+        // Criar perfil padrão localmente
+        const newProfile = { 
+          id: user.id, 
+          theme: localTheme || 'system', 
+          language: localStorage.getItem('graviprompt-language') || 'pt-BR',
+          ai_model: 'openrouter/free'
+        };
+        setProfile(newProfile as UserProfile);
+        
+        // Tentar salvar no banco de forma segura
+        const isNewUser = !profileError || profileError.code === 'PGRST116';
+        if (isNewUser) {
+          // Tentar salvar apenas colunas básicas primeiro para evitar erro de schema
+          client.from('profiles').upsert({ 
+            id: user.id, 
+            theme: newProfile.theme, 
+            language: newProfile.language 
+          }).then(({ error }) => {
+            if (error) console.warn('Sincronização básica de perfil falhou:', error.message);
+          });
         }
       }
 
@@ -249,7 +263,7 @@ export default function Dashboard({ user }: DashboardProps) {
               content: `${t('dashboard.ai_rename_user')} "${prompt.original_prompt.substring(0, 200)}"`
             }
           ],
-          model: profile?.ai_model || "google/gemini-2.0-flash-lite-preview-02-05:free"
+          model: profile?.ai_model || "openrouter/free"
         })
       });
 

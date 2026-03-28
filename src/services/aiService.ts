@@ -11,7 +11,8 @@ export async function optimizePrompt(
     sources: number;
     showSources: boolean;
   },
-  model: string = "openrouter/free"
+  model: string = "openrouter/free",
+  signal?: AbortSignal
 ) {
   const isAntigravity = target === 'Antigravity';
   const isProblemSolving = target === 'Solução de Problemas';
@@ -176,8 +177,10 @@ ESTRUTURA ADICIONAL (OBRIGATÓRIA PARA ANTIGRAVITY):
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        messages
-      })
+        messages,
+        model
+      }),
+      signal
     });
 
     if (!response.ok) {
