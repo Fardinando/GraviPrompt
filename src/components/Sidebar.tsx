@@ -11,6 +11,7 @@ interface SidebarProps {
   onRename: (id: string, title: string) => void;
   onAIRename: (id: string) => void;
   onOpenSettings: () => void;
+  onOpenSupporters: () => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   activeId?: string;
@@ -24,6 +25,7 @@ export default function Sidebar({
   onRename,
   onAIRename,
   onOpenSettings, 
+  onOpenSupporters,
   isOpen, 
   setIsOpen,
   activeId,
@@ -304,7 +306,18 @@ export default function Sidebar({
           )}
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-slate-200 dark:border-white/10">
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 space-y-2">
+            <button 
+              onClick={onOpenSupporters}
+              className={`flex items-center gap-3 rounded-theme hover:bg-slate-200 dark:hover:bg-space-800 transition-all dark:text-white group ${
+                isOpen ? 'w-full px-3 py-2' : 'w-10 h-10 justify-center mx-auto'
+              }`}
+              title="Apoiadores"
+            >
+              <span className="material-symbols-outlined text-[20px] opacity-70 group-hover:text-primary transition-colors">favorite</span>
+              {isOpen && <span className="text-sm">Apoiadores</span>}
+            </button>
+
             <button 
               onClick={onOpenSettings}
               className={`flex items-center gap-3 rounded-theme hover:bg-slate-200 dark:hover:bg-space-800 transition-all dark:text-white group ${

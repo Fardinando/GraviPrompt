@@ -3,6 +3,7 @@ import { supabase, supabaseCC, getActiveAuthClient } from './lib/supabase';
 import Auth from './components/Auth';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
+import Supporters from './pages/Supporters';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useTranslation } from './lib/i18n';
 
@@ -56,7 +57,8 @@ function ErrorContent({ error }: { error: Error | null }) {
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'landing' | 'auth'>('landing');
+  const [view, setView] = useState<'landing' | 'auth' | 'supporters' | 'dashboard'>('landing');
+  const [backTo, setBackTo] = useState<'landing' | 'dashboard'>('landing');
 
   useEffect(() => {
     // Initial session check
@@ -163,12 +165,24 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {session ? (
-        <Dashboard user={session.user} />
+      {view === 'supporters' ? (
+        <Supporters onBack={() => setView(backTo === 'dashboard' && session ? 'dashboard' : 'landing')} />
+      ) : session ? (
+        <Dashboard 
+          user={session.user} 
+          onSupporters={() => {
+            setBackTo('dashboard');
+            setView('supporters');
+          }}
+        />
       ) : view === 'landing' ? (
         <LandingPage 
           onStart={() => setView('auth')} 
           onLogin={() => setView('auth')} 
+          onSupporters={() => {
+            setBackTo('landing');
+            setView('supporters');
+          }}
         />
       ) : (
         <div className="relative">
@@ -184,3 +198,5 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+

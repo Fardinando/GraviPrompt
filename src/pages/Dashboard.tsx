@@ -10,9 +10,10 @@ import { useTranslation } from '../lib/i18n';
 
 interface DashboardProps {
   user: any;
+  onSupporters: () => void;
 }
 
-export default function Dashboard({ user }: DashboardProps) {
+export default function Dashboard({ user, onSupporters }: DashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [history, setHistory] = useState<OptimizedPrompt[]>([]);
@@ -376,6 +377,7 @@ export default function Dashboard({ user }: DashboardProps) {
         onRename={handleRenamePrompt}
         onAIRename={handleAIRename}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSupporters={onSupporters}
         activeId={activePrompt?.id}
         language={profile?.language || 'pt-BR'}
       />

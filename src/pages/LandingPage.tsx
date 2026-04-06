@@ -6,9 +6,10 @@ import { useTranslation } from '../lib/i18n';
 interface LandingPageProps {
   onStart: () => void;
   onLogin: () => void;
+  onSupporters: () => void;
 }
 
-export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
+export default function LandingPage({ onStart, onLogin, onSupporters }: LandingPageProps) {
   const { t } = useTranslation();
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -41,6 +42,12 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
           </div>
           <div className="hidden md:flex items-center gap-10">
             <a className="text-sm font-medium hover:text-primary transition-colors" href="#features">{t('landing.features')}</a>
+            <button 
+              onClick={onSupporters}
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Apoiadores
+            </button>
             <div className="relative">
               <a className="text-sm font-medium hover:text-primary transition-colors" href="#">{t('landing.enterprise')}</a>
               <span className="absolute -top-3 -right-14 px-1.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[8px] font-bold rounded-full uppercase tracking-tighter">
@@ -132,7 +139,7 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none"></div>
               <video 
                 className="w-full h-full object-cover opacity-90" 
-                src="/graviprompt-video.mp4"
+                src="/media/landing-video/graviprompt-video.mp4"
                 controls
                 poster="https://picsum.photos/seed/graviprompt/1200/800"
               />
@@ -266,6 +273,11 @@ export default function LandingPage({ onStart, onLogin }: LandingPageProps) {
               <h5 className="font-bold mb-4 text-xs uppercase tracking-widest text-primary">{t('landing.footer.product')}</h5>
               <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
                 <li><a className="hover:text-primary" href="#">{t('landing.features')}</a></li>
+                <li>
+                  <button onClick={onSupporters} className="hover:text-primary transition-colors">
+                    Apoiadores
+                  </button>
+                </li>
                 <li><a className="hover:text-primary" href="#">Integrations</a></li>
                 <li><a className="hover:text-primary" href="#">{t('landing.enterprise')}</a></li>
                 <li><a className="hover:text-primary" href="#">Changelog</a></li>
