@@ -20,8 +20,8 @@ export const supporters: Supporter[] = [
   {
     name: "Fernando Sousa",
     text: "Eu criei o site graviprompt.vercel.app para gerar prompts inteligentes e facilitar sua vida!",
-    mainImage: "/media/supporters-main/fsprincipal.png",
+    mainImage: "/media/supporters-main/fsprincipal.svg",
     bgImage: "https://picsum.photos/seed/bg1/1200/800",
-    extraImage: "https://picsum.photos/seed/extra1/800/600"
+    //extraImage: "https://picsum.photos/seed/extra1/800/600"
   }
 ];
